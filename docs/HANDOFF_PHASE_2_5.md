@@ -112,23 +112,23 @@ Image work (Priority 5) ✅: all 12 images reviewed; spelling correct in every i
 
 ## 10. Commit references
 
-⚠ **Local commits — not yet pushed.** No SolveANeed repository exists on the connected GitHub account. Hashes will stay the same when pushed.
+✅ **Pushed** to [github.com/MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed) (branch `main`), with every hash unchanged. Each link opens the commit on GitHub.
 
 | Commit | Content |
 |---|---|
-| `d90f76b` | Phase 1 baseline (as delivered before this review) |
-| `da3d549` | Security hardening migration (S1–S8) + 39 attack tests |
-| `db7226f` | Staff MFA UI and enforcement, distributed rate limits, scoped evidence UI, blocked members, generated DB types |
-| `21ab2d5` | Integration suite (real Auth/PostgREST/Storage), E2E for MFA, evidence, rate limits, signed-in accessibility; stack script |
-| `eab291b` | Image corrections and new social card |
-| `c560f50` | Audit, agreement-engine, safeguarding and backlog docs; S9 |
-| `57fd5b2` | S10 fix; stack script fix; regenerated types |
-| `298dfd8` | Phase 2.5 handoff, final audit output, screenshots |
+| [`d90f76b`](https://github.com/MyGreathouse/SolveANeed/commit/d90f76b) | Phase 1 baseline (as delivered before this review) |
+| [`da3d549`](https://github.com/MyGreathouse/SolveANeed/commit/da3d549) | Security hardening migration (S1–S8) + 39 attack tests |
+| [`db7226f`](https://github.com/MyGreathouse/SolveANeed/commit/db7226f) | Staff MFA UI and enforcement, distributed rate limits, scoped evidence UI, blocked members, generated DB types |
+| [`21ab2d5`](https://github.com/MyGreathouse/SolveANeed/commit/21ab2d5) | Integration suite (real Auth/PostgREST/Storage), E2E for MFA, evidence, rate limits, signed-in accessibility; stack script |
+| [`eab291b`](https://github.com/MyGreathouse/SolveANeed/commit/eab291b) | Image corrections and new social card |
+| [`c560f50`](https://github.com/MyGreathouse/SolveANeed/commit/c560f50) | Audit, agreement-engine, safeguarding and backlog docs; S9 |
+| [`57fd5b2`](https://github.com/MyGreathouse/SolveANeed/commit/57fd5b2) | S10 fix; stack script fix; regenerated types |
+| [`298dfd8`](https://github.com/MyGreathouse/SolveANeed/commit/298dfd8) | Phase 2.5 handoff, final audit output, screenshots |
 
 ---
 
 ### Clearly not done
-- Staging deployment ⛔ (access) · GitHub push ⛔ (no repository)
+- Staging deployment ⛔ (access) · ~~GitHub push~~ ✅ done
 - Phase 3 UI ⬜ (deliberately not started)
 - Legal opinions ⛔ (counsel)
 - Supabase MFA recovery codes ⬜ (waiting for general availability)
