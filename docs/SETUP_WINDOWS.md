@@ -60,6 +60,22 @@ values ('rate_limit_server_token', encode(sha256('PASTE-THE-SECRET-HERE'::bytea)
 on conflict (name) do update set value_hash = excluded.value_hash, updated_at = now();
 ```
 
+## 5c. Background jobs token and cron (Phase 3)
+
+Notifications, offer expiry and task auto-acceptance run through `run_jobs()`.
+
+1. Generate a token: `openssl rand -hex 32`. Put it in Vercel as `JOBS_SERVER_TOKEN` (server-only).
+2. In the Supabase SQL editor, store **only its hash**:
+   ```sql
+   insert into private.app_secrets (name, value_hash)
+   values ('jobs_server_token', encode(sha256('PASTE-TOKEN-HERE'::bytea), 'hex'))
+   on conflict (name) do update set value_hash = excluded.value_hash, updated_at = now();
+   ```
+3. Set `CRON_SECRET` in Vercel (another random value). `vercel.json` calls `/api/jobs/run` every 15 minutes (Pro plan; on Hobby, change it to daily).
+
+**Test environment only:** to let paid-task workflows run without payments, an admin (with MFA) runs
+`select public.admin_set_platform_setting('sandbox_workflows', 'true');` in **staging**. Never in production. Agreements started this way are permanently labelled "Test environment — no money moves".
+
 ## 6. Run it
 
 ```powershell
@@ -87,6 +103,20 @@ Sign out and back in, then open **/admin**. You'll be sent to **Settings → Two
 1. Push the code to a **private** GitHub repository and import it in Vercel.
 2. Add the environment variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL=https://solveaneed.com` and `RATE_LIMIT_SERVER_TOKEN`.
 3. Add the domain `solveaneed.com` in Vercel and update the Supabase Site URL and redirect URLs to match.
+
+## 9. Protect the `main` branch on GitHub (one-time, founder)
+
+Claude cannot change repository settings, so please do this in the browser:
+
+1. GitHub → **MyGreathouse/SolveANeed** → **Settings** → **Branches** → **Add branch ruleset** (or "Add rule").
+2. Target branch: `main`.
+3. Turn on: **Require a pull request before merging** (required approvals: 0 now, 1 once you add a reviewer account) · **Dismiss stale approvals** · **Require conversation resolution**.
+4. Turn on **Require status checks to pass**, tick **Require branches to be up to date**, and add these three checks (they appear after the first CI run):
+   - `Typecheck, lint, unit, build, audit`
+   - `Database policy and attack tests`
+   - `Integration and end-to-end (real Auth, PostgREST, Storage)`
+5. Turn on **Block force pushes** and **Restrict deletions**; apply to administrators too.
+6. Optional but recommended: Settings → General → make the repository **Private** before launch.
 
 ## Troubleshooting
 

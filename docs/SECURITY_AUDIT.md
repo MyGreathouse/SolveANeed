@@ -54,3 +54,37 @@ All **38** definer functions in `public` and `private` (verified by query: 38 of
 | Access tokens stay cryptographically valid until expiry (default 1 hour) after sign-out. | The app verifies sessions server-side on each request (`getClaims` → Auth server with HS256); revoked sessions are rejected. Integration-tested. Consider shorter JWT expiry in production. |
 | CSP allows `'unsafe-inline'` scripts. | Nonce-based CSP before launch. |
 | No external penetration test. | Before public launch. |
+
+---
+
+## 5. Phase 3 review (23 Nov 2026)
+
+Scope: migrations `20261124090000` and `20261124090100`, the new Server Actions (`app/dashboard/deals/actions.ts`, `app/admin/actions.ts`), route handlers `/api/files/[id]` and `/api/jobs/run`, and the `conversation-files` storage policies.
+
+**Result:** no new vulnerabilities found in the review; all Phase 2.5 corrections (S1–S10) still pass (see the handoff for test runs). Function count is now **64 SECURITY DEFINER functions, all with `search_path = ''`** ([`PRIVILEGE_AUDIT.txt`](PRIVILEGE_AUDIT.txt)). Every new table is client **read-only** under RLS; there are no new column write grants.
+
+| Boundary | Control | Tested by |
+|---|---|---|
+| Offers, versions, agreements, deal events, messages, files | No client INSERT/UPDATE/DELETE; changes only through definer RPCs that check caller, state machine, blocks, active status and rate limits | `tests/db/phase3.test.ts` ("clients cannot write …"), integration |
+| Negotiation integrity | Turn-taking (`last_proposed_by`), optimistic version check (`p_expected_version`, error 40001), immutable `offer_versions`, frozen accepted terms | db + E2E |
+| Funding claims | `agreement_funding_status()` can only say `funded` for a live, provider-confirmed payment, which the database still forbids | db + E2E ("not funded") |
+| Paid work without payment | Blocked unless `sandbox_workflows` is on; such agreements are permanently `test_mode` (cannot be relabelled) | db + E2E |
+| Messages | Parties only (RLS); immutable; bank/card/IBAN/ID details refused; contact/off-platform details flagged with a reviewer signal | db + integration + E2E |
+| Staff access to conversations | Not via RLS. `staff_read_conversation()` only while a report, dispute or unreviewed flag is open; every view audit-logged; MFA required | db + E2E |
+| Attachments | Private bucket; uploads only into the caller's own folder of a conversation they belong to and aren't blocked in; no member deletes; staff only via a 120-second audit-logged grant inside a case | integration (real Storage API) |
+| Blocks | Stop new offers, counters, acceptances, messages and uploads; records stay readable for disputes | db + integration + E2E |
+| Notifications | Fixed texts per type; never message bodies, file names, storage paths or member-typed amounts; outbox is in the `private` schema | db ("never contain …") + E2E |
+| Background jobs | `run_jobs()` requires the server token (sha256 compared in the DB); `/api/jobs/run` requires `CRON_SECRET` (constant-time compare) and returns counts only | db + integration |
+| Disputes | Decided only by staff with MFA who are **not** a party | db + E2E |
+
+### Accepted by design (documented)
+- `need_accepts_paid_tasks()` tells any signed-in member whether a **published** need's requester is open to paid tasks — needed to show the option; reveals nothing else.
+- `conversation_member()` answers only for the caller.
+- A message that trips the contact/off-platform detector brings its conversation into staff scope until a moderator marks the signal reviewed. This is a safeguarding choice; it is logged and visible in the admin console.
+
+### New residual risks
+| Risk | Plan |
+|---|---|
+| Contact details are flagged, not masked. | Consider masking before launch (backlog). |
+| No email notifications yet (in-app only). | Needs an email provider; outbox is ready. |
+| `/api/jobs/run` every 15 minutes needs Vercel Pro; Hobby allows daily. | Member actions also trigger job runs, so notifications still arrive promptly. |

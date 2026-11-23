@@ -35,7 +35,7 @@ jobs:
           if grep -rInE "\bSolveNeed\b|\bSolveneed\b|\bPROBLM\b" app components lib docs --include=*.ts --include=*.tsx --include=*.md; then
             echo "Incorrect brand spelling found"; exit 1; fi
       - run: npm run typecheck
-      - run: npm run lint
+      - run: npm run lint -- --max-warnings 0
       - run: npm test
       - name: Security regression coverage (S1–S10)
         run: node scripts/check-security-regression.mjs
@@ -48,7 +48,7 @@ jobs:
       - run: npm audit --audit-level=low
 
   database:
-    name: Database policy and attack tests (S1–S9)
+    name: Database policy and attack tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:

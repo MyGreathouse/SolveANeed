@@ -2,6 +2,28 @@
 
 Ordered. Each item lists its acceptance criteria. "Gate" items must be done before any payment code (Phase 4).
 
+## Status after the Phase 3 delivery (23 Nov 2026)
+
+| # | Status | Notes |
+|---|---|---|
+| P1 Staging | ⛔ | Needs Supabase + Vercel access |
+| P2 GitHub + CI | 🟨 | Repository, `phase-3` branch and CI ✅. Branch protection must be set by the founder (SETUP_WINDOWS §9) |
+| P3 Legal review | ⛔ | Counsel |
+| 1 Agreement lifecycle | ✅ | Implemented as `deal_events` (covers offers and agreements) |
+| 2 Offer RPCs | ✅ | `cancel_offer` is `withdraw_offer`; expiry runs in `run_jobs()` |
+| 3 Offer UI (supporter) | ✅ | |
+| 4 Offers Received UI | 🟨 | Done except a side-by-side diff (earlier versions are listed in full) and the 1-hour cooling-off before accepting a paid task |
+| 5 Agreement view | ✅ | |
+| 6 Paid-task workflow | ✅ | Start allowed only in the test environment (`sandbox_workflows`) |
+| 7 Milestone workflow | 🟨 | Proposal, negotiation and frozen milestones ✅; evidence, review and auto-approval ⬜ |
+| 8 Messaging | 🟨 | Done except masking (contact details are flagged and warned, not masked) |
+| 9 Disputes | 🟨 | Open + independent decision ✅; dispute evidence uploads, partial outcome and appeal ⬜ |
+| 10 Notifications + email | 🟨 | Durable in-app notifications ✅; email ⬜ (needs a provider) |
+| 11 Background jobs | 🟨 | Offer expiry, task auto-acceptance, notification delivery ✅; rate-limit and grant purges, readiness lapse timer ⬜ |
+| 12 Admin modules | 🟨 | Disputes & safety queue and case view ✅; offer/agreement search lists and verification queue ⬜ |
+| 13 Requester safety UX | 🟨 | Inline warnings ✅; dedicated safety guidance page ⬜ |
+| 14 E2E + integration | ✅ | |
+
 ## Pre-requisites (from the Phase 2.5 review)
 | # | Item | Acceptance criteria | Owner |
 |---|---|---|---|

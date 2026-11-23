@@ -11,6 +11,15 @@ import { enrolMfaViaUi, signIn, signOut, signUpAndVerify, sql, uniqueEmail } fro
  */
 const future = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 
+/** Set SCREENSHOT_DIR to capture the journey for the handoff (docs/screenshots). */
+async function shot(page: Page, name: string) {
+  const dir = process.env.SCREENSHOT_DIR;
+  if (!dir) return;
+  // Full-page captures: keep the sticky site header at the top instead of mid-page.
+  await page.addStyleTag({ content: "header{position:static!important}" });
+  await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+}
+
 async function axe(page: Page) {
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
@@ -56,6 +65,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.getByRole("button", { name: "Turn on" }).click();
     await expect(page.getByText("You are now open to paid-task offers")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Paid-task offers: on" })).toBeVisible();
+    await shot(page, "p3-01-requester-tasks-opt-in");
   });
 
   test("a supporter proposes a paid task; validation keeps what they typed", async ({ page }) => {
@@ -70,6 +80,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.getByRole("button", { name: "Send offer" }).click();
     await expect(page.getByText(/Task description must be at least 20/)).toBeVisible();
     await expect(page.getByLabel("Task title")).toHaveValue("Design a logo for my bakery");
+    await shot(page, "p3-02-make-offer-validation");
 
     await page.getByLabel("What needs doing").fill("A simple modern logo for a small home bakery, supplied as PNG and SVG.");
     await page.getByLabel("Deliverables").fill("Three initial concepts\nFinal logo as PNG and SVG");
@@ -82,6 +93,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     offerId = page.url().split("/").pop()!.split("?")[0];
     await expect(page.getByText("Your offer has been sent")).toBeVisible();
     await expect(page.getByText("Awaiting response")).toBeVisible();
+    await shot(page, "p3-03-offer-sent");
     const [o] = await sql<{ status: string; current_version: number; amount_minor: string }>(
       "select status, current_version, amount_minor from public.offers where id = $1", [offerId]);
     expect(o).toEqual({ status: "proposed", current_version: 1, amount_minor: "8000" });
@@ -100,6 +112,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await expect(page.getByText("Your new terms have been sent.")).toBeVisible();
     await expect(page.getByText("Waiting for Ben to respond to version 2")).toBeVisible();
     await expect(page.getByText("Amara proposed new terms (version 2)")).toBeVisible();
+    await shot(page, "p3-04-counter-offer-version-2");
   });
 
   test("messages are screened: contact details warn, bank details are refused", async ({ page }) => {
@@ -112,6 +125,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.getByLabel("Your message").fill("Or pay me to sort code 12-34-56 directly");
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(page.getByText(/do not share bank, card or identity details/)).toBeVisible();
+    await shot(page, "p3-05-message-screening");
     const n = await sql<{ n: number }>("select count(*)::int n from public.messages m join public.conversations c on c.id = m.conversation_id where c.offer_id = $1", [offerId]);
     expect(n[0].n).toBe(1);
   });
@@ -126,9 +140,11 @@ test.describe.serial("offers, agreements and messaging", () => {
     await expect(page.getByText("Not funded — no money has moved")).toBeVisible();
     await expect(page.getByText(/Terms fingerprint \(SHA-256\): [0-9a-f]{64}/)).toBeVisible();
     await expect(page.getByText(/Waiting for payment readiness/)).toBeVisible();
+    await shot(page, "p3-06-agreement-not-funded");
     await axe(page);
     await page.setViewportSize({ width: 412, height: 915 });
     await axe(page);
+    await shot(page, "p3-07-agreement-mobile");
   });
 
   test("paid task in the test environment: start, submit, revise, resubmit, accept", async ({ page }) => {
@@ -139,6 +155,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.goto(agreementUrl);
     await page.getByRole("button", { name: "Start work" }).click();
     await expect(page.getByText("Test environment — no money moves.")).toBeVisible();
+    await shot(page, "p3-08-task-started-test-environment");
     await page.getByLabel("What are you submitting?").fill("Three logo concepts, attached as one PDF.");
     await page.getByLabel(/Attach the work/).setInputFiles(pdf);
     await page.getByRole("button", { name: "Submit for review" }).click();
@@ -164,11 +181,13 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.goto(agreementUrl);
     await expect(page.getByText("0 revisions left")).toBeVisible();
     await expect(page.getByRole("button", { name: "Request a revision" })).toHaveCount(0);
+    await shot(page, "p3-09-review-resubmission");
     await page.getByRole("button", { name: "Accept the work" }).click();
     await expect(page.getByText("Work accepted. This task is complete.")).toBeVisible();
     for (const line of ["Ben accepted version 2", "Amara started work (test environment — no payment)", "Ben requested revision 1 of 1", "Ben accepted the work"]) {
       await expect(page.getByText(line).first()).toBeVisible();
     }
+    await shot(page, "p3-10-task-completed-audit-history");
     // The attachment opens for a party through a short-lived signed URL.
     const href = await page.getByRole("link", { name: "solveaneed-e2e-deliverable.pdf" }).first().getAttribute("href");
     expect((await page.request.get(href!, { maxRedirects: 0 })).status()).toBe(302);
@@ -179,6 +198,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.goto("/dashboard/notifications");
     await expect(page.getByText("New offer on your need")).toBeVisible();
     await expect(page.getByText("Task completed")).toBeVisible();
+    await shot(page, "p3-11-notifications");
     await expect(page.getByText("07700")).toHaveCount(0);
   });
 
@@ -222,6 +242,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.goto("/admin/disputes");
     await page.getByRole("link", { name: "Review case" }).first().click();
     await expect(page.getByText("The supporter has not attended")).toBeVisible();
+    await shot(page, "p3-12-moderator-dispute-case");
     await page.getByRole("link", { name: "Open conversation (logged)" }).click();
     await expect(page.getByText("No messages.")).toBeVisible();
     const logged = await sql<{ n: number }>("select count(*)::int n from public.audit_events where action = 'conversation.viewed' and actor_id = $1", [modId]);
@@ -230,6 +251,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.getByLabel(/Decision and reasons/).fill("Cancelled: the agreed sessions did not take place.");
     await page.getByRole("button", { name: "Resolve dispute" }).click();
     await expect(page.getByText("Dispute resolved. Both parties have been notified.")).toBeVisible();
+    await shot(page, "p3-13-dispute-resolved");
     await axe(page);
   });
 
@@ -241,6 +263,7 @@ test.describe.serial("offers, agreements and messaging", () => {
     await page.getByRole("button", { name: "Block member" }).click();
     await expect(page.getByText("Member blocked.")).toBeVisible();
     await expect(page.getByText("Happy with £95.")).toBeVisible();
+    await shot(page, "p3-14-member-blocked-record-kept");
     await signOut(page);
 
     await signIn(page, supporter.email);

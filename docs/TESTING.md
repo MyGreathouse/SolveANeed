@@ -33,6 +33,25 @@ Where Docker isn't available, see `tests/e2e/local-stack/README.md`. That is how
 ## Integration tests (`tests/integration`) — Phase 2.5
 Real HTTP sessions for requester, supporter, moderator and admin (MFA completed with genuine TOTP codes): API boundary (no `set_config`, no `private` schema, internal functions unreachable); RLS by role; staff roles inert at aal1; MFA enrolment audit-logged; Storage upload, type and size rejection, cross-user and anonymous denial, signed URL expiry, staff grants and their expiry, deletion rules; session revocation (others / global); aal1 → aal2 step-up.
 
+## Continuous integration (Phase 3)
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `phase-*`:
+
+| Job | What it runs |
+|---|---|
+| Typecheck, lint, unit, build, audit | `npm run typecheck`, `eslint --max-warnings 0`, unit tests, brand-name check, **S1–S10 coverage guard** (`scripts/check-security-regression.mjs`), production build, `npm audit` |
+| Database policy and attack tests | Rebuilds Postgres 16 from the migrations; policy, attack and Phase 3 suites; privilege audit (uploaded as an artifact) |
+| Integration and end-to-end | Official images of Supabase Auth v2.180.0, PostgREST v12.2.3 and Storage API v1.11.2 (`STACK_RUNTIME=docker`), then integration tests and the full Playwright suite (desktop + Pixel 7) against a production build |
+
+No secrets are used: `prepare.sh` generates throwaway keys per run.
+
+Locally (Linux/macOS with Docker): `E2E_DIR=/tmp/e2e STACK_RUNTIME=docker bash tests/e2e/local-stack/prepare.sh && E2E_DIR=/tmp/e2e STACK_RUNTIME=docker bash tests/e2e/local-stack/stack.sh`.
+
+## Phase 3 suites
+- `tests/db/phase3.test.ts` — offers, negotiation, agreements, paid tasks, disputes, messaging, blocking, notifications and retries (20 tests).
+- `tests/integration/phase3.test.ts` — the same over real HTTP, including `conversation-files` storage RLS (5 tests).
+- `tests/e2e/deals.spec.ts` — the full journey in the browser with axe checks (11 tests). `SCREENSHOT_DIR=…` captures the screenshots in `docs/screenshots/p3-*`.
+
 ## Not yet covered
 - Staging deployment (blocked: needs access).
 - Visual regression, load and penetration testing.

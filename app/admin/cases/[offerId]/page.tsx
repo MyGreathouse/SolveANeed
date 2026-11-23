@@ -56,9 +56,9 @@ export default async function CasePage({ params, searchParams }: PageProps<"/adm
     <>
       <Link href="/admin/disputes" className="text-sm font-semibold underline">← Disputes & safety</Link>
       <h1 className="text-2xl font-extrabold">Case: {supportTypeLabel(offer.offer_type)} between {party.requester} and {party.supporter}</h1>
-      <div className="flex flex-wrap gap-2">
-        <OfferStatusBadge status={offer.status as OfferStatus} />
-        {agreement && <AgreementStatusBadge status={agreement.status as AgreementStatus} />}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-muted">Offer</span> <OfferStatusBadge status={offer.status as OfferStatus} />
+        {agreement && <><span className="ml-2 text-xs font-semibold text-muted">Agreement</span> <AgreementStatusBadge status={agreement.status as AgreementStatus} /></>}
       </div>
       {agreement?.test_mode && <TestModeBanner />}
       {sp.done === "resolved" && <Alert tone="success" live>Dispute resolved. Both parties have been notified.</Alert>}
