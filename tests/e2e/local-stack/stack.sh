@@ -50,7 +50,7 @@ done
 psql -h localhost -U postgres -d $DB -q -c "grant execute on function auth.uid() to anon, authenticated, service_role"
 
 # Supabase Storage API (file backend); runs its own storage-schema migrations.
-STORAGE_ENV="SERVER_HOST=127.0.0.1 SERVER_PORT=5000 SERVER_ADMIN_PORT=5001 SERVER_REGION=local AUTH_JWT_SECRET=$JWT_SECRET AUTH_JWT_ALGORITHM=HS256 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/$DB DB_INSTALL_ROLES=false DB_ANON_ROLE=anon DB_SERVICE_ROLE=service_role DB_AUTHENTICATED_ROLE=authenticated DB_SUPER_USER=postgres DB_ALLOW_MIGRATION_REFRESH=true STORAGE_BACKEND=file TENANT_ID=stub UPLOAD_FILE_SIZE_LIMIT=52428800 UPLOAD_SIGNED_URL_EXPIRATION_TIME=60 IMAGE_TRANSFORMATION_ENABLED=false ANON_KEY=$(cat $E2E/anon_key)"
+STORAGE_ENV="SERVER_HOST=127.0.0.1 SERVER_PORT=5000 SERVER_ADMIN_PORT=5001 SERVER_REGION=local AUTH_JWT_SECRET=$JWT_SECRET AUTH_JWT_ALGORITHM=HS256 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/$DB DB_INSTALL_ROLES=false DB_ANON_ROLE=anon DB_SERVICE_ROLE=service_role DB_AUTHENTICATED_ROLE=authenticated DB_SUPER_USER=postgres DB_ALLOW_MIGRATION_REFRESH=true STORAGE_BACKEND=file STORAGE_S3_BUCKET=stub TENANT_ID=stub UPLOAD_FILE_SIZE_LIMIT=52428800 UPLOAD_SIGNED_URL_EXPIRATION_TIME=60 IMAGE_TRANSFORMATION_ENABLED=false ANON_KEY=$(cat $E2E/anon_key)"
 if [ "$RUNTIME" = docker ]; then
   chmod 777 $E2E/storage-data
   docker run -d --name sn-storage --network host -v $E2E/storage-data:/data \

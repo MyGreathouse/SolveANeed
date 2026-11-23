@@ -3,6 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { NEED_STATUSES, NEED_TRANSITIONS, canTransitionNeed } from "@/lib/domain/need-status";
 import { OFFER_STATUSES, OFFER_TRANSITIONS, canTransitionOffer } from "@/lib/domain/offer-status";
+import { AGREEMENT_TRANSITIONS, canTransitionAgreement } from "@/lib/domain/agreement-status";
+import { OFFER_STATUS_LABEL, parseOfferForm, screeningWarning } from "@/lib/domain/offers";
 import { rankNeeds, type MatchableNeed, type SupporterPreferences } from "@/lib/domain/matching";
 import { checkReadyToSubmit, exploreFiltersSchema, needDraftSchema, signUpSchema, toNeedRow } from "@/lib/domain/validation";
 
@@ -29,6 +31,12 @@ describe("state machines stay in sync with the database", () => {
     expect(tsTransitions(OFFER_TRANSITIONS)).toEqual(
       sqlTransitions("20261123090200_agreements_payments.sql", "offer_transition_allowed"),
     );
+  });
+  it("agreement transitions match public.agreement_transition_allowed()", () => {
+    expect(tsTransitions(AGREEMENT_TRANSITIONS)).toEqual(
+      sqlTransitions("20261124090100_offers_agreements_messaging.sql", "agreement_transition_allowed"),
+    );
+    expect(canTransitionAgreement("awaiting_payment_readiness", "completed")).toBe(false);
   });
   it("requesters cannot jump from draft to published", () => {
     expect(canTransitionNeed("draft", "published")).toBe(false);
@@ -122,5 +130,52 @@ describe("validation", () => {
   it("strips control characters from free text", () => {
     const parsed = needDraftSchema.parse({ ...goodDraft, title: "Hello\u0007 world" });
     expect(parsed.title).toBe("Hello world");
+  });
+});
+
+describe("offer forms", () => {
+  const fd = (o: Record<string, string>) => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(o)) f.set(k, v);
+    return f;
+  };
+  const future = new Date(Date.now() + 20 * 86_400_000).toISOString().slice(0, 10);
+
+  it("an accepted offer is never labelled as funded", () => {
+    expect(OFFER_STATUS_LABEL.accepted).toBe("Agreed — not funded");
+    expect(Object.values(OFFER_STATUS_LABEL).some((l) => /^Funded/.test(l))).toBe(false);
+  });
+
+  it("parses a gift in minor units without floating point", () => {
+    const r = parseOfferForm("gift", fd({ amount: "19.99", message: "Good luck" }), 2);
+    expect(r).toEqual({ ok: true, value: { type: "gift", amountMinor: 1999, terms: { message: "Good luck" } } });
+    expect(parseOfferForm("gift", fd({ amount: "0" }), 2).ok).toBe(false);
+    expect(parseOfferForm("gift", fd({ amount: "1.234" }), 2)).toMatchObject({ ok: false, errors: { amount: expect.any(String) } });
+  });
+
+  it("paid tasks require remote work, deliverables and criteria", () => {
+    const base = { amount: "80", title: "Logo design", description: "A clean logo for a small home bakery business.", deliverables: "Concepts\nFinal files", deadline: future, acceptance_criteria: "Delivered as PNG and SVG files.", max_revisions: "2" };
+    expect(parseOfferForm("paid_task", fd(base), 2)).toMatchObject({ ok: false, errors: { remote_only: expect.any(String) } });
+    const ok = parseOfferForm("paid_task", fd({ ...base, remote_only: "on" }), 2);
+    expect(ok).toMatchObject({ ok: true, value: { amountMinor: 8000, terms: { deliverables: ["Concepts", "Final files"], max_revisions: 2 } } });
+  });
+
+  it("milestone totals come from the milestones themselves", () => {
+    const r = parseOfferForm("milestone", fd({
+      m0_title: "Enrol", m0_criteria: "Enrolment confirmation", m0_evidence: "Letter", m0_amount: "100.50", m0_due: future,
+      m1_title: "Finish", m1_criteria: "Course certificate issued", m1_evidence: "Certificate", m1_amount: "49.50", m1_due: future,
+    }), 2);
+    expect(r).toMatchObject({ ok: true, value: { amountMinor: 15000 } });
+  });
+
+  it("direct support is non-cash and must be online or public", () => {
+    const base = { kind: "mentoring", description: "Weekly interview practice over video call." };
+    expect(parseOfferForm("direct_support", fd(base), 2).ok).toBe(false);
+    expect(parseOfferForm("direct_support", fd({ ...base, online_or_public_only: "on" }), 2)).toMatchObject({ ok: true, value: { amountMinor: 0 } });
+  });
+
+  it("explains screening flags without repeating the member's text", () => {
+    expect(screeningWarning([])).toBeNull();
+    expect(screeningWarning(["phone_number", "off_platform_payment"])).toMatch(/phone number and a mention of paying outside/);
   });
 });
