@@ -43,7 +43,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder-not-a-real-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
       - run: npm audit --audit-level=low
 
@@ -130,6 +130,8 @@ jobs:
         run: |
           docker logs sn-auth > "$E2E_DIR/auth.log" 2>&1 || true
           docker logs sn-storage > "$E2E_DIR/storage.log" 2>&1 || true
+          echo "--- storage errors"; grep -E '"level":(50|40)|Error' "$E2E_DIR/storage.log" | tail -30 || true
+          echo "--- app log"; tail -30 "$E2E_DIR/app.log" 2>/dev/null || true
           docker logs sn-postgrest > "$E2E_DIR/postgrest.log" 2>&1 || true
           rm -f "$E2E_DIR/jwt_secret" "$E2E_DIR/service_key" "$E2E_DIR"/*.env
       - uses: actions/upload-artifact@v4
