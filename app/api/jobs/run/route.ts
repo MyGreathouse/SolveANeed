@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runJobs } from "@/lib/server/jobs";
 
 /**
- * Scheduled backstop for background work (Vercel Cron: see vercel.json).
+ * Scheduled backstop for background work (Cloudflare Cron Trigger: see
+ * wrangler.jsonc and custom-worker.ts).
  * Requires `Authorization: Bearer $CRON_SECRET`. Returns counts only.
  */
 export async function GET(req: NextRequest) {

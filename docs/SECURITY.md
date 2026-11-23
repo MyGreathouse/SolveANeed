@@ -15,7 +15,7 @@ How each requirement in §19 of the build directive is met, and where it is veri
 | Webhook signatures and idempotency | Schema only: `provider_events` requires verification; unique keys | DB test (schema) |
 | Session management | Supabase cookies refreshed in `proxy.ts`; sign out of other devices or everywhere; other sessions revoked after a password change | E2E (reset flow) |
 | Audit logging | `audit_events`, append-only, written only by definer functions | DB + E2E |
-| Secret management | `.env.example` only. Secrets live in Vercel/Supabase env | — |
+| Secret management | `.env.example` only. Secrets live in Cloudflare Worker secrets and Supabase | — |
 | Dependency checks | `npm audit` (0 vulnerabilities at build time). Enable Dependabot on the repo | — |
 
 ### Threats specifically prevented

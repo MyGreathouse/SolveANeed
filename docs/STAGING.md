@@ -22,5 +22,11 @@ All 9 migrations applied on 23 Nov 2026. The last one was applied in three parts
 - **Security:** no errors. Info/warnings are by design: deny-all tables with RLS and no policies (grants, rate limits, provider events); SECURITY DEFINER RPCs callable by signed-in users (the app's write API — every function checks the caller); 7 anon-callable helpers (`has_role`, `is_staff`, `is_active_user`, `setting_bool`, `need_requester_public` answer only about the caller or published needs; `consume_anon_rate_limit` and `run_jobs` require the server token).
 - **Performance:** 39 RLS policies call `auth.uid()` per row (`auth_rls_initplan`) — wrap as `(select auth.uid())` in a follow-up migration before launch; 61 unindexed foreign keys and unused-index notices (empty database) — review with real traffic.
 
+## Cloudflare Workers
+- Hosting: Cloudflare Worker `solveaneed-staging` via `@opennextjs/cloudflare` 1.20.18 (`wrangler.jsonc`, `open-next.config.ts`, `custom-worker.ts`). Static prerendered pages use the static-assets cache; no R2 bucket needed. Images are served pre-optimised (`images.unoptimized`).
+- Background jobs: Cron Trigger `*/15 * * * *` → `custom-worker.ts` → `/api/jobs/run` with `CRON_SECRET`.
+- **Middleware:** Next 16's `proxy.ts` runs on the Node runtime, which OpenNext supports on Workers only experimentally; on the Workers runtime it failed every request that carried a cookie (`cookie.parse` undefined in the bundled converter). SolveANeed therefore uses `middleware.ts` (Edge runtime, deprecated name but fully supported). Behaviour is unchanged.
+- Verified 23 Nov 2026 on the Workers runtime locally (`wrangler`/`workerd` via `opennextjs-cloudflare preview`) against the real Auth/PostgREST/Storage stack: **full E2E suite 56 passed, 1 skipped by design, 0 worker errors**; Cron Trigger tested (`/__scheduled` delivered a queued notification). CI now runs the E2E suite on the Workers runtime too.
+
 ## Still to do
-Auth settings in the dashboard (site URL, redirect URLs, SMTP sender), Cloudflare deployment, first admin account, E2E run against the staging URL.
+Connect the repository in Cloudflare and add build variables and secrets (SETUP_WINDOWS §8); Auth settings in Supabase (site URL, redirect URLs, SMTP sender); first admin account, E2E run against the staging URL.

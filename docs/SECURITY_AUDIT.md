@@ -87,4 +87,4 @@ Scope: migrations `20261124090000` and `20261124090100`, the new Server Actions 
 |---|---|
 | Contact details are flagged, not masked. | Consider masking before launch (backlog). |
 | No email notifications yet (in-app only). | Needs an email provider; outbox is ready. |
-| `/api/jobs/run` every 15 minutes needs Vercel Pro; Hobby allows daily. | Member actions also trigger job runs, so notifications still arrive promptly. |
+| Background jobs run from a Cloudflare Cron Trigger every 15 minutes (`custom-worker.ts` → `/api/jobs/run`). | Member actions also trigger job runs, so notifications arrive promptly even between cron runs. |

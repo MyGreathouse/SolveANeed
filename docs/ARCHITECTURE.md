@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  U["Browser / mobile"] -->|HTTPS + CSP/HSTS| V["Vercel: Next.js 16"]
+  U["Browser / mobile"] -->|HTTPS + CSP/HSTS| V["Cloudflare Workers: Next.js 16 (OpenNext)"]
   subgraph App["Next.js server"]
     PX["proxy.ts: session refresh + fast redirect"]
     DAL["lib/auth: requireViewer / requireRole / requireStaff<br/>MFA routing aal1 → /mfa"]

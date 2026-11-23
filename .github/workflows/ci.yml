@@ -39,8 +39,8 @@ jobs:
       - run: npm test
       - name: Security regression coverage (S1–S10)
         run: node scripts/check-security-regression.mjs
-      - name: Build
-        run: npm run build
+      - name: Build for Cloudflare Workers (OpenNext; runs next build)
+        run: npx opennextjs-cloudflare build
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder-not-a-real-key
@@ -112,13 +112,18 @@ jobs:
           INT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/solveaneed_e2e
       - name: Rebuild stack for a clean end-to-end run
         run: bash tests/e2e/local-stack/stack.sh > "$E2E_DIR/stack2.out" 2>&1 || { cat "$E2E_DIR/stack2.out"; exit 1; }
-      - name: Build and start the app
+      - name: Build and start the app on the Workers runtime (wrangler / workerd)
+        env:
+          WRANGLER_SEND_METRICS: "false"
         run: |
           printf 'NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\nNEXT_PUBLIC_SITE_URL=http://localhost:3000\nRATE_LIMIT_SERVER_TOKEN=%s\n' \
             "$ANON_KEY" "$STACK_RATE_LIMIT_TOKEN" > .env.local
-          npm run build
-          nohup npm start > "$E2E_DIR/app.log" 2>&1 &
-          for i in $(seq 1 60); do curl -sf localhost:3000 >/dev/null && break; sleep 1; done
+          cp .env.local .dev.vars
+          echo "CRON_SECRET=ci-cron-secret" >> .dev.vars
+          npx opennextjs-cloudflare build
+          nohup npx opennextjs-cloudflare preview --port 3000 --ip 127.0.0.1 --test-scheduled > "$E2E_DIR/app.log" 2>&1 &
+          for i in $(seq 1 90); do curl -sf localhost:3000 >/dev/null && break; sleep 1; done
+          curl -sf "localhost:3000/__scheduled?cron=*/15+*+*+*+*" && echo " (cron trigger ran)"
       - run: npx playwright install --with-deps chromium
       - name: End-to-end and accessibility tests
         run: npx playwright test

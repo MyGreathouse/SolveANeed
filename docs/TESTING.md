@@ -39,9 +39,9 @@ Real HTTP sessions for requester, supporter, moderator and admin (MFA completed 
 
 | Job | What it runs |
 |---|---|
-| Typecheck, lint, unit, build, audit | `npm run typecheck`, `eslint --max-warnings 0`, unit tests, brand-name check, **S1–S10 coverage guard** (`scripts/check-security-regression.mjs`), production build, `npm audit` |
+| Typecheck, lint, unit, build, audit | `npm run typecheck`, `eslint --max-warnings 0`, unit tests, brand-name check, **S1–S10 coverage guard** (`scripts/check-security-regression.mjs`), Cloudflare (OpenNext) production build, `npm audit` |
 | Database policy and attack tests | Rebuilds Postgres 16 from the migrations; policy, attack and Phase 3 suites; privilege audit (uploaded as an artifact) |
-| Integration and end-to-end | Official images of Supabase Auth v2.180.0, PostgREST v12.2.3 and Storage API v1.11.2 (`STACK_RUNTIME=docker`), then integration tests and the full Playwright suite (desktop + Pixel 7) against a production build |
+| Integration and end-to-end | Official images of Supabase Auth v2.180.0, PostgREST v12.2.3 and Storage API v1.11.2 (`STACK_RUNTIME=docker`), then integration tests and the full Playwright suite (desktop + Pixel 7) against the app built with OpenNext and running on the **Cloudflare Workers runtime** (`wrangler`/`workerd`), plus a Cron Trigger check |
 
 No secrets are used: `prepare.sh` generates throwaway keys per run.
 

@@ -38,14 +38,14 @@ This assessment updates the Phase 2.5 view now that the agreement layer exists. 
 | 4 | Characterisation of milestone sponsorship (conditional gift vs contract) and tax treatment | Counsel / accountant | ⛔ |
 | 5 | HMRC digital platform reporting registration and data collection | Founder | ⛔ |
 | 6 | DPIA updated for payment and KYC data | Founder + DPO | ⛔ |
-| 7 | Staging environment (separate Supabase + Vercel) | Founder access | ⛔ |
+| 7 | Staging environment (separate Supabase + Cloudflare Worker) | Founder | 🟨 Supabase staging ready; Cloudflare connection pending |
 | 8 | Partial-release dispute outcome and appeal | Engineering (Phase 3b) | ⛔ |
 | 9 | Milestone evidence workflow (submission, review, auto-approval) | Engineering (Phase 3b) | ⛔ |
 | 10 | Transactional email (offer, acceptance, submission, dispute) | Engineering + email provider | ⛔ |
 
 ## 4. Engineering checklist for Phase 4 (once 1–7 are cleared)
 
-1. Provider in **test mode only**; keys server-side in Vercel; no card data ever reaches SolveANeed (hosted checkout / elements).
+1. Provider in **test mode only**; keys stored as Cloudflare Worker secrets; no card data ever reaches SolveANeed (hosted checkout / elements).
 2. Webhook route with signature verification, idempotent insert into `provider_events` (unique `(provider, event_id)`, `signature_verified = true` constraint already present).
 3. A single SECURITY DEFINER function per transition (`mark_payment_ready`, `record_payout`, `record_refund`), callable only by the webhook's server identity — never by members.
 4. Nightly reconciliation job comparing provider balances and transactions with `payment_transactions`.

@@ -6,7 +6,7 @@ Ordered. Each item lists its acceptance criteria. "Gate" items must be done befo
 
 | # | Status | Notes |
 |---|---|---|
-| P1 Staging | ⛔ | Needs Supabase + Vercel access |
+| P1 Staging | 🟨 | Supabase staging ready (docs/STAGING.md); Cloudflare Worker connection pending |
 | P2 GitHub + CI | 🟨 | Repository, `phase-3` branch and CI ✅. Branch protection must be set by the founder (SETUP_WINDOWS §9) |
 | P3 Legal review | ⛔ | Counsel |
 | 1 Agreement lifecycle | ✅ | Implemented as `deal_events` (covers offers and agreements) |
@@ -27,7 +27,7 @@ Ordered. Each item lists its acceptance criteria. "Gate" items must be done befo
 ## Pre-requisites (from the Phase 2.5 review)
 | # | Item | Acceptance criteria | Owner |
 |---|---|---|---|
-| P1 | Staging environment | Separate Supabase project (London) + Vercel preview; migrations applied by CI; seeded **test** data only; `RATE_LIMIT_SERVER_TOKEN` and its hash configured; staff MFA on | Founder (access) + Engineering |
+| P1 | Staging environment | Separate Supabase project (London) + Cloudflare Worker; migrations applied by CI; seeded **test** data only; `RATE_LIMIT_SERVER_TOKEN` and its hash configured; staff MFA on | Founder (access) + Engineering |
 | P2 | Push repository to GitHub — ✅ pushed 23 Nov 2026 ([MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed)); remaining: branch protection + CI | All local commits pushed ✅; branch protection on `main`; CI runs typecheck, lint, unit, db and integration tests | Founder (repo) + Engineering |
 | P3 | Legal review of the agreement engine | Written opinion on items marked [VERIFY] in AGREEMENT_ENGINE.md | Founder + counsel |
 
