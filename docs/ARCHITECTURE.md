@@ -4,16 +4,35 @@
 
 ```mermaid
 flowchart LR
-  U[Browser / mobile] -->|HTTPS| V[Vercel: Next.js 16 app]
-  V -->|proxy.ts refreshes session cookie| V
-  V -->|supabase-js as the signed-in user| SA[Supabase Auth]
-  V -->|PostgREST + RLS| DB[(Postgres)]
-  V -->|signed URLs| ST[Supabase Storage: private need-evidence bucket]
-  SA --> DB
-  DB -->|triggers & SECURITY DEFINER RPCs| DB
-  subgraph Phase 4 - not built
-    PP[Regulated payment provider] -.verified webhooks.-> WH[Webhook route]
-    WH -.service role, idempotent.-> DB
+  U["Browser / mobile"] -->|HTTPS + CSP/HSTS| V["Vercel: Next.js 16"]
+  subgraph App["Next.js server"]
+    PX["proxy.ts: session refresh + fast redirect"]
+    DAL["lib/auth: requireViewer / requireRole / requireStaff<br/>MFA routing aal1 → /mfa"]
+    SA["Server Actions: Zod validation"]
+    RL["lib/security/rate-limit: hashed subjects + server token"]
+  end
+  V --> PX --> DAL --> SA
+  SA --> RL
+  SA -->|publishable key, user JWT| AUTH["Supabase Auth<br/>password + TOTP MFA"]
+  SA -->|PostgREST: public schema only| PG[("Postgres")]
+  SA -->|signed URLs 60s| ST["Storage: private need-evidence"]
+  RL -->|consume_anon_rate_limit| PG
+  subgraph PG_["Postgres enforcement"]
+    RLS["RLS + column grants<br/>has_role requires aal2 for staff"]
+    RPC["37 SECURITY DEFINER functions<br/>search_path empty"]
+    TRG["Guard + rate-limit triggers"]
+    AUD[("audit_events append-only")]
+    GR[("evidence_access_grants 120s")]
+    PRIV[["private schema: secrets, hit"]]
+  end
+  PG --- RLS & RPC & TRG
+  RPC --> AUD
+  RPC --> GR
+  ST -->|storage RLS: owner or active grant| GR
+  AUTH -->|mfa_factors trigger| AUD
+  subgraph P4["Phase 4 — designed, not built"]
+    PP["Regulated provider e.g. Stripe Connect"] -.signature-verified webhooks.-> WH[Webhook route]
+    WH -.idempotent, service role.-> PG
   end
 ```
 

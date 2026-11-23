@@ -130,7 +130,8 @@ run("database policies (RLS, grants, triggers)", () => {
       const asOther = await as(db, user(other), (q) => q("select id from public.needs where id = $1", [id]));
       const asOwner = await as(db, user(requester), (q) => q("select id from public.needs where id = $1", [id]));
       const asMod = await as(db, user(moderator), (q) => q("select id from public.needs where id = $1", [id]));
-      expect([asAnon.rowCount, asOther.rowCount, asOwner.rowCount, asMod.rowCount]).toEqual([0, 0, 1, 1]);
+      // Unsubmitted drafts are private even from moderators (S9).
+      expect([asAnon.rowCount, asOther.rowCount, asOwner.rowCount, asMod.rowCount]).toEqual([0, 0, 1, 0]);
     });
 
     it("prevents owners changing status or moderation fields directly", async () => {

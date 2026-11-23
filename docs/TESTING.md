@@ -2,9 +2,10 @@
 
 | Suite | Command | Needs | Count (Phase 1 run) |
 |---|---|---|---|
-| Unit | `npm test` | Nothing | 34 passing |
-| Database policies | `npm run test:db` | `TEST_DATABASE_URL`, a **disposable** Postgres 15+ database (it is dropped on every run) | 33 passing |
-| End-to-end + accessibility | `npm run test:e2e` | A running app connected to a **non-production** Supabase, plus `E2E_DATABASE_URL` and either `MAILPIT_URL` or `E2E_MAIL_DIR` | 40 passing, 1 skipped by design |
+| Unit | `npm test` | Nothing | 41 passing |
+| Database policies + attacks | `npm run test:db` | `TEST_DATABASE_URL`, a **disposable** Postgres 15+ database (it is dropped on every run) | 72 passing (33 policy + 39 attack) |
+| Integration (HTTP, real services) | `npx vitest run --project integration` | `INT_SUPABASE_URL`, `INT_ANON_KEY`, `INT_SERVICE_ROLE_KEY` (**test stack only**), `INT_DATABASE_URL` | 17 passing |
+| End-to-end + accessibility | `npm run test:e2e` | A running app connected to a **non-production** Supabase, plus `E2E_DATABASE_URL` and either `MAILPIT_URL` or `E2E_MAIL_DIR`; `RATE_LIMIT_SERVER_TOKEN` set | 45 passing, 1 skipped by design |
 | Types / lint | `npm run typecheck` / `npm run lint` | — | Clean |
 
 ## Unit tests (`tests/unit`)
@@ -29,7 +30,10 @@ Point the local auth email templates at `supabase/templates/*.html` so links go 
 
 Where Docker isn't available, see `tests/e2e/local-stack/README.md`. That is how the Phase 1 run was done: real GoTrue v2.180.0 and PostgREST v12.2.3 binaries against Postgres 16.
 
+## Integration tests (`tests/integration`) — Phase 2.5
+Real HTTP sessions for requester, supporter, moderator and admin (MFA completed with genuine TOTP codes): API boundary (no `set_config`, no `private` schema, internal functions unreachable); RLS by role; staff roles inert at aal1; MFA enrolment audit-logged; Storage upload, type and size rejection, cross-user and anonymous denial, signed URL expiry, staff grants and their expiry, deletion rules; session revocation (others / global); aal1 → aal2 step-up.
+
 ## Not yet covered
-- Evidence **upload** through Supabase Storage. The Storage API wasn't part of the test stack; storage RLS is covered by the database tests only.
+- Staging deployment (blocked: needs access).
 - Visual regression, load and penetration testing.
 - Manual screen-reader testing (NVDA/VoiceOver).

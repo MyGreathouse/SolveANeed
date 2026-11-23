@@ -732,3 +732,11 @@ revoke execute on function public.my_roles() from public, anon;
 grant execute on function public.my_roles() to authenticated;
 revoke execute on function public.admin_set_platform_setting(text, jsonb) from public, anon;
 grant execute on function public.admin_set_platform_setting(text, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- S9 (LOW): staff could read members' unsubmitted drafts. Drafts are now
+-- private to their owner; staff see needs from submission onwards.
+-- ---------------------------------------------------------------------------
+drop policy needs_member_read on public.needs;
+create policy needs_member_read on public.needs for select to authenticated
+  using (status = 'published' or requester_id = auth.uid() or (public.is_staff() and status <> 'draft'));

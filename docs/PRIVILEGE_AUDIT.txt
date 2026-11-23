@@ -1,0 +1,112 @@
+SolveANeed privilege audit — generated 2026-11-23T11:01Z against Postgres 16 with GoTrue v2.180.0 auth schema and Supabase Storage API schema.
+Command: psql -f scripts/privilege-audit.sql
+
+== Functions in public: security definer, search_path, who can EXECUTE
+           function           |                                         args                                          | security |     config     | anon_exec | auth_exec 
+------------------------------+---------------------------------------------------------------------------------------+----------+----------------+-----------+-----------
+ agreements_terms_immutable   |                                                                                       | invoker  | search_path="" | f         | f
+ contributions_currency_guard |                                                                                       | invoker  | search_path="" | f         | f
+ current_aal                  |                                                                                       | invoker  | search_path="" | t         | t
+ detect_sensitive_content     | p_text text                                                                           | invoker  | search_path="" | f         | t
+ need_transition_allowed      | p_from need_status, p_to need_status                                                  | invoker  | search_path="" | t         | t
+ needs_guard                  |                                                                                       | invoker  | search_path="" | f         | f
+ offer_transition_allowed     | p_from offer_status, p_to offer_status                                                | invoker  | search_path="" | t         | t
+ offers_guard                 |                                                                                       | invoker  | search_path="" | f         | f
+ prevent_mutation             |                                                                                       | invoker  | search_path="" | f         | f
+ profiles_guard               |                                                                                       | invoker  | search_path="" | f         | f
+ refunds_guard                |                                                                                       | invoker  | search_path="" | f         | f
+ set_updated_at               |                                                                                       | invoker  | search_path="" | f         | f
+ admin_set_account_status     | p_user_id uuid, p_status account_status, p_reason text                                | DEFINER  | search_path="" | f         | t
+ admin_set_platform_setting   | p_key text, p_value jsonb                                                             | DEFINER  | search_path="" | f         | t
+ admin_set_role               | p_user_id uuid, p_role app_role, p_enabled boolean                                    | DEFINER  | search_path="" | f         | t
+ audit_mfa_factor_change      |                                                                                       | DEFINER  | search_path="" | f         | f
+ authorise_evidence_access    | p_evidence_id uuid                                                                    | DEFINER  | search_path="" | f         | t
+ block_user                   | p_user_id uuid, p_reason text                                                         | DEFINER  | search_path="" | f         | t
+ check_rate_limit             | p_action text, p_max integer, p_window_seconds integer                                | DEFINER  | search_path="" | f         | f
+ close_need                   | p_need_id uuid                                                                        | DEFINER  | search_path="" | f         | t
+ consume_anon_rate_limit      | p_action text, p_subject_hash text, p_server_token text                               | DEFINER  | search_path="" | t         | t
+ consume_rate_limit           | p_action text                                                                         | DEFINER  | search_path="" | f         | t
+ enforce_rate_limit           |                                                                                       | DEFINER  | search_path="" | f         | f
+ handle_new_user              |                                                                                       | DEFINER  | search_path="" | f         | f
+ has_role                     | p_role app_role                                                                       | DEFINER  | search_path="" | t         | t
+ is_active_user               |                                                                                       | DEFINER  | search_path="" | t         | t
+ is_blocked_between           | p_a uuid, p_b uuid                                                                    | DEFINER  | search_path="" | f         | f
+ is_staff                     |                                                                                       | DEFINER  | search_path="" | t         | t
+ log_audit                    | p_action text, p_entity_type text, p_entity_id uuid, p_metadata jsonb                 | DEFINER  | search_path="" | f         | f
+ mark_all_notifications_read  |                                                                                       | DEFINER  | search_path="" | f         | t
+ mark_risk_signal_reviewed    | p_signal_id uuid                                                                      | DEFINER  | search_path="" | f         | t
+ moderate_need                | p_need_id uuid, p_action text, p_note text                                            | DEFINER  | search_path="" | f         | t
+ moderation_stats             |                                                                                       | DEFINER  | search_path="" | f         | t
+ my_blocked_users             |                                                                                       | DEFINER  | search_path="" | f         | t
+ my_roles                     |                                                                                       | DEFINER  | search_path="" | f         | t
+ need_requester_public        | p_need_id uuid                                                                        | DEFINER  | search_path="" | t         | t
+ notify_user                  | p_user_id uuid, p_type text, p_title text, p_body text, p_link text                   | DEFINER  | search_path="" | f         | f
+ purge_rate_limits            |                                                                                       | DEFINER  | search_path="" | f         | f
+ record_staff_mfa_reset       | p_user_id uuid, p_reason text                                                         | DEFINER  | search_path="" | f         | t
+ request_account_deletion     |                                                                                       | DEFINER  | search_path="" | f         | t
+ resolve_report               | p_report_id uuid, p_status report_status, p_resolution text                           | DEFINER  | search_path="" | f         | t
+ set_my_role                  | p_role app_role, p_enabled boolean                                                    | DEFINER  | search_path="" | f         | t
+ setting_bool                 | p_key text                                                                            | DEFINER  | search_path="" | t         | t
+ staff_evidence_in_scope      | p_need_id uuid                                                                        | DEFINER  | search_path="" | f         | t
+ staff_has_evidence_grant     | p_path text                                                                           | DEFINER  | search_path="" | f         | t
+ submit_need                  | p_need_id uuid                                                                        | DEFINER  | search_path="" | f         | t
+ submit_report                | p_target_type report_target, p_target_id uuid, p_reason report_reason, p_details text | DEFINER  | search_path="" | f         | t
+ unblock_user                 | p_user_id uuid                                                                        | DEFINER  | search_path="" | f         | t
+
+== Tables: RLS status and client privileges
+         table          | rls | forced | anon_table_privs |   auth_table_privs   |                                                                                                                                                                                                                                              auth_column_writes                                                                                                                                                                                                                                              
+------------------------+-----+--------+------------------+----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ agreement_milestones   | t   | f      |                  | SELECT               | 
+ agreements             | t   | f      |                  | SELECT               | 
+ audit_events           | t   | f      |                  | SELECT               | 
+ contributions          | t   | f      |                  | SELECT               | 
+ conversations          | t   | f      |                  | SELECT               | 
+ currencies             | t   | f      | SELECT           | SELECT               | 
+ dispute_evidence       | t   | f      |                  | SELECT               | 
+ disputes               | t   | f      |                  | SELECT               | 
+ evidence_access_grants | t   | f      |                  |                      | 
+ messages               | t   | f      |                  | SELECT               | 
+ moderation_actions     | t   | f      |                  | SELECT               | 
+ need_categories        | t   | f      | SELECT           | SELECT               | 
+ need_evidence          | t   | f      |                  | DELETE,SELECT        | INSERT(file_name), INSERT(mime_type), INSERT(need_id), INSERT(owner_id), INSERT(size_bytes), INSERT(storage_path)
+ needs                  | t   | f      | SELECT           | DELETE,SELECT        | INSERT(accepted_support_types), INSERT(amount_minor), INSERT(category_slug), INSERT(currency), INSERT(deadline), INSERT(description), INSERT(intended_use), INSERT(region), INSERT(requester_id), INSERT(show_requester_name), INSERT(title), INSERT(visibility), UPDATE(accepted_support_types), UPDATE(amount_minor), UPDATE(category_slug), UPDATE(currency), UPDATE(deadline), UPDATE(description), UPDATE(intended_use), UPDATE(region), UPDATE(show_requester_name), UPDATE(title), UPDATE(visibility)
+ notifications          | t   | f      |                  | SELECT               | UPDATE(read_at)
+ offer_versions         | t   | f      |                  | SELECT               | 
+ offers                 | t   | f      |                  | SELECT               | 
+ organisation_members   | t   | f      |                  | SELECT               | 
+ organisations          | t   | f      |                  | SELECT               | 
+ payment_transactions   | t   | f      |                  | SELECT               | 
+ payouts                | t   | f      |                  | SELECT               | 
+ platform_settings      | t   | f      |                  | SELECT               | 
+ profiles               | t   | f      |                  | SELECT               | UPDATE(bio), UPDATE(display_name), UPDATE(notify_email_messages), UPDATE(notify_email_offers), UPDATE(notify_email_updates), UPDATE(notify_marketing), UPDATE(preferred_currency), UPDATE(region), UPDATE(show_region)
+ provider_events        | t   | f      |                  |                      | 
+ rate_limit_rules       | t   | f      |                  |                      | 
+ rate_limits            | t   | f      |                  |                      | 
+ refunds                | t   | f      |                  | SELECT               | 
+ reports                | t   | f      |                  | SELECT               | 
+ risk_signals           | t   | f      |                  | SELECT               | 
+ saved_needs            | t   | f      |                  | DELETE,INSERT,SELECT | 
+ support_preferences    | t   | f      |                  | INSERT,SELECT,UPDATE | 
+ task_deliverables      | t   | f      |                  | SELECT               | 
+ user_blocks            | t   | f      |                  | SELECT               | 
+ user_roles             | t   | f      |                  | SELECT               | 
+ verification_cases     | t   | f      |                  | SELECT               | 
+ needs_public           | f   | f      | SELECT           | SELECT               | 
+
+== Views and their security_invoker setting
+     view     |        options        
+--------------+-----------------------
+ needs_public | security_invoker=true
+
+== RLS-enabled tables with NO policies (deny-all for clients)
+        relname         
+------------------------
+ rate_limits
+ provider_events
+ rate_limit_rules
+ evidence_access_grants
+
+== Tables WITHOUT RLS (must be empty)
+ relname 
+---------
+

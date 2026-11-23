@@ -7,11 +7,11 @@ How each requirement in §19 of the build directive is met, and where it is veri
 | Least privilege | No service-role key in the app. Explicit revokes plus column grants | DB test |
 | Server-side permission checks | `requireViewer`/`requireRole`/`requireStaff` on every page and action, then RLS | E2E (other user's need returns 404, `/admin` returns 404) |
 | Input validation | Zod schemas (`lib/domain/validation.ts`), DB CHECK constraints, `submit_need()` checks | Unit + DB test |
-| Rate limiting | DB-backed `check_rate_limit()`: need submission (5/day), reports (10/h), uploads (30/h). Auth endpoints use Supabase's built-in limits | DB test (submissions) |
+| Rate limiting | Server-defined `rate_limit_rules` in Postgres (shared by all serverless instances): submissions, drafts, reports, uploads, saves, profile edits, role changes, blocks; signed-out sign-in/sign-up/reset/MFA via a server token with hashed subjects | DB attack tests + E2E (sign-in lockout) |
 | CSRF | Server Actions check the request origin. Session cookies are SameSite=Lax | Framework behaviour |
 | XSS | React escaping, no `dangerouslySetInnerHTML` except escaped JSON-LD, CSP | E2E (headers) |
-| Secure uploads | Type allowlist, 10 MB limit, signature-byte check, safe file names, random object names | Unit-level code review only; **upload path not run end to end** (see handoff) |
-| Private storage and signed access | Private bucket, storage RLS, 60-second signed URLs, staff access audit-logged | DB test |
+| Secure uploads | Type allowlist, 10 MB limit, signature-byte check, safe file names, random object names | Integration (real Storage API) + E2E (fake PDF rejected, real PDF accepted) |
+| Private storage and signed access | Private bucket; storage RLS (owner, or staff with a 120-second audit-logged grant inside a review case); 60-second signed URLs | DB attack tests + integration (expiry, cross-user denial) |
 | Webhook signatures and idempotency | Schema only: `provider_events` requires verification; unique keys | DB test (schema) |
 | Session management | Supabase cookies refreshed in `proxy.ts`; sign out of other devices or everywhere; other sessions revoked after a password change | E2E (reset flow) |
 | Audit logging | `audit_events`, append-only, written only by definer functions | DB + E2E |
@@ -36,8 +36,10 @@ How each requirement in §19 of the build directive is met, and where it is veri
 ### Security headers (next.config.ts)
 CSP (`frame-ancestors 'none'`, `object-src 'none'`, `form-action 'self'`), HSTS (2 years, preload), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive `Permissions-Policy`, and `poweredByHeader: false`.
 
+> Phase 2.5: see **`SECURITY_AUDIT.md`** for findings S1–S9 and the definer-function review. Staff MFA is now mandatory and database-enforced.
+
 ### Before launch
-- Set `REQUIRE_STAFF_MFA=true`, build an MFA enrolment screen, and enrol all staff.
+- Configure `RATE_LIMIT_SERVER_TOKEN` and its hash; enrol all staff in MFA with backup devices.
 - Turn on Supabase leaked-password protection, require email confirmation, and use custom SMTP.
 - Move to a nonce-based CSP (removes `'unsafe-inline'` for scripts).
 - Get an external penetration test. Enable the Supabase security advisor and fix its findings.

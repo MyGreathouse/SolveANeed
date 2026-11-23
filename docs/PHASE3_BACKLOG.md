@@ -1,0 +1,31 @@
+# SolveANeed — Phase 3 Implementation Backlog
+
+Ordered. Each item lists its acceptance criteria. "Gate" items must be done before any payment code (Phase 4).
+
+## Pre-requisites (from the Phase 2.5 review)
+| # | Item | Acceptance criteria | Owner |
+|---|---|---|---|
+| P1 | Staging environment | Separate Supabase project (London) + Vercel preview; migrations applied by CI; seeded **test** data only; `RATE_LIMIT_SERVER_TOKEN` and its hash configured; staff MFA on | Founder (access) + Engineering |
+| P2 | Push repository to GitHub | All local commits pushed; branch protection on `main`; CI runs typecheck, lint, unit, db and integration tests | Founder (repo) + Engineering |
+| P3 | Legal review of the agreement engine | Written opinion on items marked [VERIFY] in AGREEMENT_ENGINE.md | Founder + counsel |
+
+## Phase 3 — Agreements (no money movement)
+| # | Item | Acceptance criteria |
+|---|---|---|
+| 1 | Migration: agreement lifecycle | Extended `agreement_status` + `agreement_transition_allowed()`; `agreement_events` append-only; TS mirror with parity test |
+| 2 | Offer RPCs | `create_offer`, `counter_offer`, `accept_offer`, `decline_offer`, `cancel_offer`, `expire_offers` (scheduled). Enforce: opt-in for paid tasks, accepted support types, blocks, active accounts, rate limits, one open offer per supporter per need, sensitive-content screening. Adversarial DB tests for each |
+| 3 | Offer UI (supporter) | "Make an offer" on need pages for the four types; form validation mirrors the RPC; axe-clean on mobile and desktop |
+| 4 | Offers Received UI (requester) | List, compare versions (diff view), accept, decline, counter, block, report. 1-hour cooling-off before accepting a paid task |
+| 5 | Agreement view | Immutable terms, SHA-256 shown, timeline from `agreement_events`, cancellation per policy |
+| 6 | Paid-task workflow (without payment) | `payment_ready` stubbed as "Payment not yet available" — **work must not start**; submission of deliverables (private storage, scoped staff access), review, revisions, auto-accept timer |
+| 7 | Milestone workflow (without payment) | Milestone proposal, moderation of criteria, evidence submission, review, auto-approval timer |
+| 8 | Messaging | Threads per offer and agreement; read status; masking of contact and identity details; block and report; moderator access only via an open dispute or report (audit-logged RPC) |
+| 9 | Disputes | Open, evidence, independent moderator assignment, decision with reasons, single appeal, outcomes recorded |
+| 10 | Notifications + transactional email | Durable job queue (`pg_cron` or Supabase scheduled functions + an outbox table); emails for offer, acceptance, deadline, submission, review, dispute opened/resolved; respects preferences |
+| 11 | Background jobs | Offer expiry, task and milestone timers, hold expiry (Phase 4), rate-limit purge, evidence grant purge |
+| 12 | Admin modules | Offers, Agreements, Disputes, Verification queue |
+| 13 | Requester safety UX | Safety guidance page; inline warnings for off-platform payment attempts |
+| 14 | E2E + integration | Full offer → agreement → submission → acceptance → dispute journeys with real sessions; axe on all new pages |
+
+## Phase 4 gate (payments) — not started
+Provider contract and approval of each fund flow; UK hold limit confirmed; DPIA updated; HMRC platform registration; webhook endpoint with signature verification; reconciliation; refunds; payouts with approval; sandbox only until explicit go-live approval.

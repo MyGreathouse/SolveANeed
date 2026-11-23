@@ -4,7 +4,7 @@
 
 SolveANeed (solveaneed.com) is a mobile-first, hybrid problem-solving marketplace for the United Kingdom. It connects people with genuine needs to individuals, businesses and organisations who can help, through four forms of support: **Give** (unconditional gifts), **Earn** (paid, agreed remote tasks), **Fund** (milestone sponsorship) and **Solve** (direct practical help).
 
-> **Status: Phase 1 (Foundation) and core Phase 2 (Marketplace).** Payments are **not** implemented and are blocked at database level. See [`docs/HANDOFF_PHASE_1.md`](docs/HANDOFF_PHASE_1.md).
+> **Status: Phase 2.5 (architecture hardening) complete; Phase 3 not started.** Payments are **not** implemented and are blocked at database level. See [`docs/HANDOFF_PHASE_2_5.md`](docs/HANDOFF_PHASE_2_5.md).
 
 ## Stack
 
@@ -60,5 +60,8 @@ docs/                Architecture, security, compliance, testing, handoff
 - [Testing](docs/TESTING.md)
 - [Setup on Windows](docs/SETUP_WINDOWS.md)
 - [Phase 1 handoff report](docs/HANDOFF_PHASE_1.md)
+- [**Phase 2.5 handoff report**](docs/HANDOFF_PHASE_2_5.md)
+- [Security audit (Phase 2.5)](docs/SECURITY_AUDIT.md) · [Privilege audit output](docs/PRIVILEGE_AUDIT.txt)
+- [Agreement engine design](docs/AGREEMENT_ENGINE.md) · [Safeguarding](docs/SAFEGUARDING.md) · [Phase 3 backlog](docs/PHASE3_BACKLOG.md)
 
 © SolveANeed. Brand rule: always **SolveANeed** (capital S, A, N).

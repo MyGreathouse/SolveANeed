@@ -9,6 +9,7 @@ Postgres on Supabase. All schema changes are versioned SQL migrations in `supaba
 | `20261123090200_agreements_payments.sql` | `organisations`, `organisation_members`, `offers` (+ transition guard), `offer_versions` (immutable), `agreements` (immutable terms + SHA-256), `agreement_milestones`, `task_deliverables`, `contributions`, `payment_transactions` (live mode blocked), `provider_events`, `payouts`, `refunds`, `disputes`, `dispute_evidence`, `conversations`, `messages`. Participants can read; there are no client write policies yet |
 | `20261123090300_storage.sql` | Private `need-evidence` bucket (10 MB, PDF/JPEG/PNG/WebP) and storage RLS policies |
 | `20261123090400_evidence_access_and_stats.sql` | `authorise_evidence_access` (audit-logged staff access), `mark_all_notifications_read`, `moderation_stats`, `mark_risk_signal_reviewed` |
+| `20261123110000_security_hardening.sql` | **Phase 2.5** — fixes S1–S9 (see `SECURITY_AUDIT.md`): removes `public_profiles`, read-only `needs_public`, DB-enforced staff MFA (`platform_settings`, `current_aal()`), `rate_limit_rules` + `consume_rate_limit` / `consume_anon_rate_limit` + write triggers, `private` schema, scoped evidence grants, `user_blocks` + RPCs, `detect_sensitive_content`, MFA audit trigger, default-privilege hardening |
 
 All 27 tables listed in the build directive exist, plus supporting tables: `currencies`, `need_categories`, `saved_needs`, `rate_limits`, `risk_signals`.
 
@@ -35,9 +36,9 @@ All 27 tables listed in the build directive exist, plus supporting tables: `curr
 
 The final hard deletion of `auth.users` is an administrative step run with the service role outside the web app, after these checks.
 
-## Generating TypeScript types (recommended next step)
+## Generated TypeScript types
 
 ```bash
-npx supabase gen types typescript --project-id <ref> > lib/supabase/database.types.ts
+npm run db:types   # supabase gen types typescript --linked --schema public
 ```
-Then pass the `Database` type to `createServerClient<Database>()`.
+Done in Phase 2.5: `lib/supabase/database.types.ts` is generated (Supabase CLI 3.3.0) and both clients are typed with it. Regenerate after every migration.
