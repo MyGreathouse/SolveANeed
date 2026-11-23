@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Staging Worker. Production will be a separate Worker with its own Supabase project.
+  "name": "solveaneed-staging",
+  "main": "custom-worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "solveaneed-staging" }
+  ],
+  // Background jobs every 15 minutes (Cron Triggers are included on all Workers plans).
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  // Runtime variables. Secrets (RATE_LIMIT_SERVER_TOKEN, JOBS_SERVER_TOKEN, CRON_SECRET)
+  // are set in the Cloudflare dashboard or with `wrangler secret put`, never here.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://bldrvexnroetqkmtbjus.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_v-qjPCLaC8hhfUcLlpidSQ_JqpNVB8I"
+  }
+}

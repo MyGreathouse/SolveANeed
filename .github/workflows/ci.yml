@@ -1,0 +1,149 @@
+name: CI
+
+# Runs on every pull request and on pushes to main and phase branches.
+# No secrets are used: every key below is generated per run for a throwaway
+# local stack. No payment provider is contacted.
+on:
+  pull_request:
+  push:
+    branches: [main, "phase-*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  checks:
+    name: Typecheck, lint, unit, build, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - name: Brand name check (SolveANeed only)
+        run: |
+          if grep -rInE "\bSolveNeed\b|\bSolveneed\b|\bPROBLM\b" app components lib docs --include=*.ts --include=*.tsx --include=*.md; then
+            echo "Incorrect brand spelling found"; exit 1; fi
+      - run: npm run typecheck
+      - run: npm run lint -- --max-warnings 0
+      - run: npm test
+      - name: Security regression coverage (S1–S10)
+        run: node scripts/check-security-regression.mjs
+      - name: Build for Cloudflare Workers (OpenNext; runs next build)
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder-not-a-real-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      - run: npm audit --audit-level=low
+
+  database:
+    name: Database policy and attack tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/solveaneed_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - run: npm run test:db
+      - name: Privilege audit
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d solveaneed_test -v ON_ERROR_STOP=1 \
+            -f scripts/privilege-audit.sql > privilege-audit.txt
+          tail -40 privilege-audit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: privilege-audit, path: privilege-audit.txt }
+
+  stack:
+    name: Integration and end-to-end (real Auth, PostgREST, Storage)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      E2E_DIR: /tmp/solveaneed-e2e
+      STACK_RUNTIME: docker
+      STACK_RATE_LIMIT_TOKEN: ci-test-only-rate-limit-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - run: pip install aiosmtpd
+      - name: Start local stack
+        run: |
+          bash tests/e2e/local-stack/prepare.sh
+          bash tests/e2e/local-stack/stack.sh > "$E2E_DIR/stack.out" 2>&1 || { cat "$E2E_DIR/stack.out"; exit 1; }
+          tail -3 "$E2E_DIR/stack.out"
+          echo "ANON_KEY=$(cat $E2E_DIR/anon_key)" >> "$GITHUB_ENV"
+          echo "SERVICE_KEY=$(cat $E2E_DIR/service_key)" >> "$GITHUB_ENV"
+      - name: Integration tests
+        run: npx vitest run --project integration
+        env:
+          INT_SUPABASE_URL: http://localhost:54321
+          INT_ANON_KEY: ${{ env.ANON_KEY }}
+          INT_SERVICE_ROLE_KEY: ${{ env.SERVICE_KEY }}
+          INT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/solveaneed_e2e
+      - name: Rebuild stack for a clean end-to-end run
+        run: bash tests/e2e/local-stack/stack.sh > "$E2E_DIR/stack2.out" 2>&1 || { cat "$E2E_DIR/stack2.out"; exit 1; }
+      - name: Build and start the app on the Workers runtime (wrangler / workerd)
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          printf 'NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\nNEXT_PUBLIC_SITE_URL=http://localhost:3000\nRATE_LIMIT_SERVER_TOKEN=%s\n' \
+            "$ANON_KEY" "$STACK_RATE_LIMIT_TOKEN" > .env.local
+          cp .env.local .dev.vars
+          echo "CRON_SECRET=ci-cron-secret" >> .dev.vars
+          npx opennextjs-cloudflare build
+          nohup npx opennextjs-cloudflare preview --port 3000 --ip 127.0.0.1 --test-scheduled > "$E2E_DIR/app.log" 2>&1 &
+          for i in $(seq 1 90); do curl -sf localhost:3000 >/dev/null && break; sleep 1; done
+          curl -sf "localhost:3000/__scheduled?cron=*/15+*+*+*+*" && echo " (cron trigger ran)"
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end and accessibility tests
+        run: npx playwright test
+        env:
+          E2E_MAIL_DIR: ${{ env.E2E_DIR }}/mail
+          E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/solveaneed_e2e
+      - name: Collect logs
+        if: failure()
+        run: |
+          docker logs sn-auth > "$E2E_DIR/auth.log" 2>&1 || true
+          docker logs sn-storage > "$E2E_DIR/storage.log" 2>&1 || true
+          echo "--- storage errors"; grep -E '"level":(50|40)|Error' "$E2E_DIR/storage.log" | tail -30 || true
+          echo "--- app log"; tail -30 "$E2E_DIR/app.log" 2>/dev/null || true
+          docker logs sn-postgrest > "$E2E_DIR/postgrest.log" 2>&1 || true
+          rm -f "$E2E_DIR/jwt_secret" "$E2E_DIR/service_key" "$E2E_DIR"/*.env
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: stack-logs
+          path: |
+            ${{ env.E2E_DIR }}/*.log
+            ${{ env.E2E_DIR }}/*.out
+            test-results/

@@ -55,7 +55,10 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    formats: ["image/avif", "image/webp"],
+    // Images are shipped pre-optimised (WebP, sized). Serving them as-is keeps
+    // behaviour identical on Cloudflare Workers, where Next's optimiser needs a
+    // paid Images binding.
+    unoptimized: true,
   },
   experimental: {
     serverActions: {

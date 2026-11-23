@@ -39,14 +39,14 @@ isOneToOne: false
                   ]
                 },"agreements": {
                   Row: {
-                    "agreement_type": Database["public"]['Enums']["support_type"],"amount_minor": number,"created_at": string,"currency": string,"id": string,"offer_id": string,"offer_version_id": string,"platform_fee_bps": number,"requester_id": string,"status": Database["public"]['Enums']["agreement_status"],"supporter_id": string,"terms_sha256": string,"terms_snapshot": NonNullable<Json>,"updated_at": string
+                    "agreement_type": Database["public"]['Enums']["support_type"],"amount_minor": number,"cancelled_at": string | null,"completed_at": string | null,"created_at": string,"currency": string,"dispute_window_hours": number,"id": string,"max_revisions": number,"need_id": string | null,"offer_id": string,"offer_version_id": string,"payment_ready_at": string | null,"platform_fee_bps": number,"requester_id": string,"revisions_used": number,"status": Database["public"]['Enums']["agreement_status"],"submitted_at": string | null,"supporter_id": string,"terms_sha256": string,"terms_snapshot": NonNullable<Json>,"test_mode": boolean,"updated_at": string,"work_started_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "agreement_type": Database["public"]['Enums']["support_type"],"amount_minor": number,"created_at"?: string,"currency": string,"id"?: string,"offer_id": string,"offer_version_id": string,"platform_fee_bps"?: number,"requester_id": string,"status"?: Database["public"]['Enums']["agreement_status"],"supporter_id": string,"terms_sha256": string,"terms_snapshot": NonNullable<Json>,"updated_at"?: string
+                    "agreement_type": Database["public"]['Enums']["support_type"],"amount_minor": number,"cancelled_at"?: string | null,"completed_at"?: string | null,"created_at"?: string,"currency": string,"dispute_window_hours"?: number,"id"?: string,"max_revisions"?: number,"need_id"?: string | null,"offer_id": string,"offer_version_id": string,"payment_ready_at"?: string | null,"platform_fee_bps"?: number,"requester_id": string,"revisions_used"?: number,"status"?: Database["public"]['Enums']["agreement_status"],"submitted_at"?: string | null,"supporter_id": string,"terms_sha256": string,"terms_snapshot": NonNullable<Json>,"test_mode"?: boolean,"updated_at"?: string,"work_started_at"?: string | null
                   }
                   Update: {
-                    "agreement_type"?: Database["public"]['Enums']["support_type"],"amount_minor"?: number,"created_at"?: string,"currency"?: string,"id"?: string,"offer_id"?: string,"offer_version_id"?: string,"platform_fee_bps"?: number,"requester_id"?: string,"status"?: Database["public"]['Enums']["agreement_status"],"supporter_id"?: string,"terms_sha256"?: string,"terms_snapshot"?: NonNullable<Json>,"updated_at"?: string
+                    "agreement_type"?: Database["public"]['Enums']["support_type"],"amount_minor"?: number,"cancelled_at"?: string | null,"completed_at"?: string | null,"created_at"?: string,"currency"?: string,"dispute_window_hours"?: number,"id"?: string,"max_revisions"?: number,"need_id"?: string | null,"offer_id"?: string,"offer_version_id"?: string,"payment_ready_at"?: string | null,"platform_fee_bps"?: number,"requester_id"?: string,"revisions_used"?: number,"status"?: Database["public"]['Enums']["agreement_status"],"submitted_at"?: string | null,"supporter_id"?: string,"terms_sha256"?: string,"terms_snapshot"?: NonNullable<Json>,"test_mode"?: boolean,"updated_at"?: string,"work_started_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -55,6 +55,18 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "currencies"
       referencedColumns: ["code"]
+    },{
+      foreignKeyName: "agreements_need_id_fkey"
+      columns: ["need_id"]
+isOneToOne: false
+      referencedRelation: "needs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agreements_need_id_fkey"
+      columns: ["need_id"]
+isOneToOne: false
+      referencedRelation: "needs_public"
+      referencedColumns: ["id"]
     },{
       foreignKeyName: "agreements_offer_id_fkey"
       columns: ["offer_id"]
@@ -145,6 +157,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"conversation_files": {
+                  Row: {
+                    "conversation_id": string,"created_at": string,"file_name": string,"id": string,"mime_type": string,"size_bytes": number,"storage_path": string,"uploader_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "conversation_id": string,"created_at"?: string,"file_name": string,"id"?: string,"mime_type": string,"size_bytes": number,"storage_path": string,"uploader_id": string
+                  }
+                  Update: {
+                    "conversation_id"?: string,"created_at"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string,"size_bytes"?: number,"storage_path"?: string,"uploader_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversation_files_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversation_files_uploader_id_fkey"
+      columns: ["uploader_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"conversation_reads": {
+                  Row: {
+                    "conversation_id": string,"last_read_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "conversation_id": string,"last_read_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "conversation_id"?: string,"last_read_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversation_reads_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversation_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"conversations": {
                   Row: {
                     "blocked_by": string | null,"created_at": string,"id": string,"need_id": string | null,"offer_id": string | null,"requester_id": string,"supporter_id": string
@@ -209,6 +273,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"deal_events": {
+                  Row: {
+                    "actor_id": string | null,"agreement_id": string | null,"created_at": string,"detail": NonNullable<Json>,"event": string,"id": number,"offer_id": string,"version": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id"?: string | null,"agreement_id"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"event": string,"id"?: never,"offer_id": string,"version"?: number | null
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"agreement_id"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"event"?: string,"id"?: never,"offer_id"?: string,"version"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deal_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deal_events_agreement_id_fkey"
+      columns: ["agreement_id"]
+isOneToOne: false
+      referencedRelation: "agreements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deal_events_offer_id_fkey"
+      columns: ["offer_id"]
+isOneToOne: false
+      referencedRelation: "offers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"dispute_evidence": {
                   Row: {
                     "created_at": string,"description": string,"dispute_id": string,"id": string,"storage_path": string | null,"submitted_by": string
@@ -237,14 +333,14 @@ isOneToOne: false
                   ]
                 },"disputes": {
                   Row: {
-                    "agreement_id": string,"id": string,"opened_at": string,"opened_by": string,"reason": string,"resolution": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": Database["public"]['Enums']["dispute_status"]
+                    "agreement_id": string,"assigned_to": string | null,"id": string,"opened_at": string,"opened_by": string,"outcome": string | null,"reason": string,"resolution": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": Database["public"]['Enums']["dispute_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "agreement_id": string,"id"?: string,"opened_at"?: string,"opened_by": string,"reason": string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: Database["public"]['Enums']["dispute_status"]
+                    "agreement_id": string,"assigned_to"?: string | null,"id"?: string,"opened_at"?: string,"opened_by": string,"outcome"?: string | null,"reason": string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: Database["public"]['Enums']["dispute_status"]
                   }
                   Update: {
-                    "agreement_id"?: string,"id"?: string,"opened_at"?: string,"opened_by"?: string,"reason"?: string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: Database["public"]['Enums']["dispute_status"]
+                    "agreement_id"?: string,"assigned_to"?: string | null,"id"?: string,"opened_at"?: string,"opened_by"?: string,"outcome"?: string | null,"reason"?: string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: Database["public"]['Enums']["dispute_status"]
                   }
                   Relationships: [
                     {
@@ -252,6 +348,12 @@ isOneToOne: false
       columns: ["agreement_id"]
 isOneToOne: false
       referencedRelation: "agreements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "disputes_assigned_to_fkey"
+      columns: ["assigned_to"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "disputes_opened_by_fkey"
@@ -293,16 +395,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"messages": {
+                },"file_access_grants": {
                   Row: {
-                    "body": string,"conversation_id": string,"created_at": string,"id": string,"read_at": string | null,"sender_id": string
+                    "created_at": string,"expires_at": string,"id": string,"storage_path": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"conversation_id": string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id": string
+                    "created_at"?: string,"expires_at": string,"id"?: string,"storage_path": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"conversation_id"?: string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id"?: string
+                    "created_at"?: string,"expires_at"?: string,"id"?: string,"storage_path"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "file_access_grants_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"messages": {
+                  Row: {
+                    "body": string,"conversation_id": string,"created_at": string,"file_id": string | null,"flags": (string)[],"id": string,"read_at": string | null,"sender_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"conversation_id": string,"created_at"?: string,"file_id"?: string | null,"flags"?: (string)[],"id"?: string,"read_at"?: string | null,"sender_id": string
+                  }
+                  Update: {
+                    "body"?: string,"conversation_id"?: string,"created_at"?: string,"file_id"?: string | null,"flags"?: (string)[],"id"?: string,"read_at"?: string | null,"sender_id"?: string
                   }
                   Relationships: [
                     {
@@ -310,6 +432,12 @@ isOneToOne: false
       columns: ["conversation_id"]
 isOneToOne: false
       referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "messages_file_fk"
+      columns: ["file_id"]
+isOneToOne: false
+      referencedRelation: "conversation_files"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "messages_sender_id_fkey"
@@ -471,14 +599,14 @@ isOneToOne: false
                   ]
                 },"offers": {
                   Row: {
-                    "accepted_at": string | null,"accepted_version": number | null,"amount_minor": number,"created_at": string,"currency": string,"current_version": number,"expires_at": string | null,"id": string,"need_id": string,"offer_type": Database["public"]['Enums']["support_type"],"organisation_id": string | null,"requester_id": string,"status": Database["public"]['Enums']["offer_status"],"supporter_id": string,"updated_at": string
+                    "accepted_at": string | null,"accepted_version": number | null,"amount_minor": number,"closed_at": string | null,"closed_reason": string | null,"created_at": string,"currency": string,"current_version": number,"expires_at": string | null,"id": string,"last_proposed_by": string | null,"need_id": string,"offer_type": Database["public"]['Enums']["support_type"],"organisation_id": string | null,"requester_id": string,"status": Database["public"]['Enums']["offer_status"],"supporter_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "accepted_at"?: string | null,"accepted_version"?: number | null,"amount_minor": number,"created_at"?: string,"currency": string,"current_version"?: number,"expires_at"?: string | null,"id"?: string,"need_id": string,"offer_type": Database["public"]['Enums']["support_type"],"organisation_id"?: string | null,"requester_id": string,"status"?: Database["public"]['Enums']["offer_status"],"supporter_id": string,"updated_at"?: string
+                    "accepted_at"?: string | null,"accepted_version"?: number | null,"amount_minor": number,"closed_at"?: string | null,"closed_reason"?: string | null,"created_at"?: string,"currency": string,"current_version"?: number,"expires_at"?: string | null,"id"?: string,"last_proposed_by"?: string | null,"need_id": string,"offer_type": Database["public"]['Enums']["support_type"],"organisation_id"?: string | null,"requester_id": string,"status"?: Database["public"]['Enums']["offer_status"],"supporter_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "accepted_at"?: string | null,"accepted_version"?: number | null,"amount_minor"?: number,"created_at"?: string,"currency"?: string,"current_version"?: number,"expires_at"?: string | null,"id"?: string,"need_id"?: string,"offer_type"?: Database["public"]['Enums']["support_type"],"organisation_id"?: string | null,"requester_id"?: string,"status"?: Database["public"]['Enums']["offer_status"],"supporter_id"?: string,"updated_at"?: string
+                    "accepted_at"?: string | null,"accepted_version"?: number | null,"amount_minor"?: number,"closed_at"?: string | null,"closed_reason"?: string | null,"created_at"?: string,"currency"?: string,"current_version"?: number,"expires_at"?: string | null,"id"?: string,"last_proposed_by"?: string | null,"need_id"?: string,"offer_type"?: Database["public"]['Enums']["support_type"],"organisation_id"?: string | null,"requester_id"?: string,"status"?: Database["public"]['Enums']["offer_status"],"supporter_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -487,6 +615,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "currencies"
       referencedColumns: ["code"]
+    },{
+      foreignKeyName: "offers_last_proposed_by_fkey"
+      columns: ["last_proposed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     },{
       foreignKeyName: "offers_need_id_fkey"
       columns: ["need_id"]
@@ -1019,7 +1153,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "admin_set_account_status":
+            "accept_offer":
+{ Args: { "p_expected_version": number,"p_offer_id": string }; Returns: string
+                           },
+"admin_set_account_status":
 { Args: { "p_reason": string,"p_status": Database["public"]['Enums']["account_status"],"p_user_id": string }; Returns: undefined
                            },
 "admin_set_platform_setting":
@@ -1028,11 +1165,23 @@ isOneToOne: false
 "admin_set_role":
 { Args: { "p_enabled": boolean,"p_role": Database["public"]['Enums']["app_role"],"p_user_id": string }; Returns: undefined
                            },
+"agreement_funding_status":
+{ Args: { "p_agreement_id": string }; Returns: string
+                           },
+"agreement_transition_allowed":
+{ Args: { "p_from": Database["public"]['Enums']["agreement_status"],"p_to": Database["public"]['Enums']["agreement_status"] }; Returns: boolean
+                           },
+"authorise_conversation_file":
+{ Args: { "p_file_id": string }; Returns: string
+                           },
 "authorise_evidence_access":
 { Args: { "p_evidence_id": string }; Returns: string
                            },
 "block_user":
 { Args: { "p_reason": string,"p_user_id": string }; Returns: undefined
+                           },
+"cancel_agreement":
+{ Args: { "p_agreement_id": string,"p_reason": string }; Returns: undefined
                            },
 "check_rate_limit":
 { Args: { "p_action": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
@@ -1040,14 +1189,37 @@ isOneToOne: false
 "close_need":
 { Args: { "p_need_id": string }; Returns: undefined
                            },
+"confirm_support_received":
+{ Args: { "p_agreement_id": string }; Returns: undefined
+                           },
 "consume_anon_rate_limit":
 { Args: { "p_action": string,"p_server_token": string,"p_subject_hash": string }; Returns: boolean
                            },
 "consume_rate_limit":
 { Args: { "p_action": string }; Returns: boolean
                            },
+"conversation_member":
+{ Args: { "p_conversation_text": string }; Returns: boolean
+                           },
+"conversation_upload_allowed":
+{ Args: { "p_conversation_text": string }; Returns: boolean
+                           },
+"counter_offer":
+{ Args: { "p_amount_minor": number,"p_expected_version": number,"p_offer_id": string,"p_terms": Json }; Returns: Json
+                           },
+"create_offer":
+{ Args: { "p_amount_minor": number,"p_need_id": string,"p_terms": Json,"p_type": Database["public"]['Enums']["support_type"] }; Returns: Json
+                           },
 "current_aal":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"deal_party_names":
+{ Args: { "p_offer_id": string }; Returns: {
+              "requester_name": string,"supporter_name": string
+            }[]
+                           },
+"decline_offer":
+{ Args: { "p_offer_id": string,"p_reason": string }; Returns: undefined
                            },
 "detect_sensitive_content":
 { Args: { "p_text": string }; Returns: (string)[]
@@ -1070,6 +1242,9 @@ isOneToOne: false
 "mark_all_notifications_read":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"mark_conversation_read":
+{ Args: { "p_conversation_id": string }; Returns: undefined
+                           },
 "mark_risk_signal_reviewed":
 { Args: { "p_signal_id": string }; Returns: undefined
                            },
@@ -1090,6 +1265,9 @@ isOneToOne: false
 "my_roles":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"][]
                            },
+"need_accepts_paid_tasks":
+{ Args: { "p_need_id": string }; Returns: boolean
+                           },
 "need_requester_public":
 { Args: { "p_need_id": string }; Returns: {
               "display_name": string,"identity_verified": boolean
@@ -1104,17 +1282,35 @@ isOneToOne: false
 "offer_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["offer_status"],"p_to": Database["public"]['Enums']["offer_status"] }; Returns: boolean
                            },
+"open_dispute":
+{ Args: { "p_agreement_id": string,"p_reason": string }; Returns: string
+                           },
 "purge_rate_limits":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "record_staff_mfa_reset":
 { Args: { "p_reason": string,"p_user_id": string }; Returns: undefined
                            },
+"register_conversation_file":
+{ Args: { "p_conversation_id": string,"p_file_name": string,"p_storage_path": string }; Returns: string
+                           },
 "request_account_deletion":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"resolve_dispute":
+{ Args: { "p_dispute_id": string,"p_outcome": string,"p_resolution": string }; Returns: undefined
+                           },
 "resolve_report":
 { Args: { "p_report_id": string,"p_resolution": string,"p_status": Database["public"]['Enums']["report_status"] }; Returns: undefined
+                           },
+"review_task_work":
+{ Args: { "p_agreement_id": string,"p_decision": string,"p_note": string }; Returns: undefined
+                           },
+"run_jobs":
+{ Args: { "p_server_token": string }; Returns: Json
+                           },
+"send_message":
+{ Args: { "p_body": string,"p_conversation_id": string,"p_file_id": string }; Returns: Json
                            },
 "set_my_role":
 { Args: { "p_enabled": boolean,"p_role": Database["public"]['Enums']["app_role"] }; Returns: undefined
@@ -1122,11 +1318,31 @@ isOneToOne: false
 "setting_bool":
 { Args: { "p_key": string }; Returns: boolean
                            },
+"staff_conversation_id":
+{ Args: { "p_offer_id": string }; Returns: string
+                           },
+"staff_conversation_in_scope":
+{ Args: { "p_conversation_id": string }; Returns: boolean
+                           },
 "staff_evidence_in_scope":
 { Args: { "p_need_id": string }; Returns: boolean
                            },
 "staff_has_evidence_grant":
 { Args: { "p_path": string }; Returns: boolean
+                           },
+"staff_has_file_grant":
+{ Args: { "p_path": string }; Returns: boolean
+                           },
+"staff_offer_for_message":
+{ Args: { "p_message_id": string }; Returns: string
+                           },
+"staff_read_conversation":
+{ Args: { "p_conversation_id": string }; Returns: {
+              "body": string,"created_at": string,"file_id": string,"flags": (string)[],"id": string,"sender_id": string,"sender_role": string
+            }[]
+                           },
+"start_task_work":
+{ Args: { "p_agreement_id": string }; Returns: undefined
                            },
 "submit_need":
 { Args: { "p_need_id": string }; Returns: undefined
@@ -1134,12 +1350,18 @@ isOneToOne: false
 "submit_report":
 { Args: { "p_details": string,"p_reason": Database["public"]['Enums']["report_reason"],"p_target_id": string,"p_target_type": Database["public"]['Enums']["report_target"] }; Returns: string
                            },
+"submit_task_work":
+{ Args: { "p_agreement_id": string,"p_attachment_id": string,"p_description": string }; Returns: string
+                           },
 "unblock_user":
 { Args: { "p_user_id": string }; Returns: undefined
+                           },
+"withdraw_offer":
+{ Args: { "p_offer_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            "account_status": "active"|"suspended"|"deletion_requested","agreement_status": "awaiting_payment_readiness"|"active"|"submitted"|"in_review"|"completed"|"cancelled"|"disputed","app_role": "requester"|"supporter"|"business_rep"|"moderator"|"admin","dispute_status": "open"|"under_review"|"resolved"|"appealed"|"closed","milestone_status": "pending"|"evidence_submitted"|"approved"|"rejected"|"paid"|"cancelled","need_status": "draft"|"pending_review"|"changes_requested"|"published"|"rejected"|"closed"|"suspended","need_visibility": "public"|"members_only","offer_status": "draft"|"proposed"|"countered"|"accepted"|"declined"|"expired"|"cancelled"|"completed"|"disputed","payment_status": "created"|"requires_action"|"processing"|"succeeded"|"failed"|"cancelled"|"refunded"|"partially_refunded","payout_status": "pending"|"approved"|"in_transit"|"paid"|"failed"|"cancelled","refund_status": "requested"|"processing"|"succeeded"|"failed"|"cancelled","report_reason": "fraud_or_scam"|"misleading"|"inappropriate"|"harassment"|"duplicate"|"prohibited_request"|"other","report_status": "open"|"under_review"|"actioned"|"dismissed","report_target": "need"|"profile"|"message"|"offer","support_type": "gift"|"paid_task"|"milestone"|"direct_support","verification_status": "pending"|"approved"|"rejected"|"withdrawn","verification_type": "identity"|"evidence"|"outcome"
+            "account_status": "active"|"suspended"|"deletion_requested","agreement_status": "awaiting_payment_readiness"|"active"|"submitted"|"revision_requested"|"in_review"|"completed"|"cancelled"|"lapsed"|"disputed","app_role": "requester"|"supporter"|"business_rep"|"moderator"|"admin","dispute_status": "open"|"under_review"|"resolved"|"appealed"|"closed","milestone_status": "pending"|"evidence_submitted"|"approved"|"rejected"|"paid"|"cancelled","need_status": "draft"|"pending_review"|"changes_requested"|"published"|"rejected"|"closed"|"suspended","need_visibility": "public"|"members_only","offer_status": "draft"|"proposed"|"countered"|"accepted"|"declined"|"expired"|"cancelled"|"completed"|"disputed","payment_status": "created"|"requires_action"|"processing"|"succeeded"|"failed"|"cancelled"|"refunded"|"partially_refunded","payout_status": "pending"|"approved"|"in_transit"|"paid"|"failed"|"cancelled","refund_status": "requested"|"processing"|"succeeded"|"failed"|"cancelled","report_reason": "fraud_or_scam"|"misleading"|"inappropriate"|"harassment"|"duplicate"|"prohibited_request"|"other","report_status": "open"|"under_review"|"actioned"|"dismissed","report_target": "need"|"profile"|"message"|"offer","support_type": "gift"|"paid_task"|"milestone"|"direct_support","verification_status": "pending"|"approved"|"rejected"|"withdrawn","verification_type": "identity"|"evidence"|"outcome"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1255,7 +1477,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "account_status": ["active", "suspended", "deletion_requested"],"agreement_status": ["awaiting_payment_readiness", "active", "submitted", "in_review", "completed", "cancelled", "disputed"],"app_role": ["requester", "supporter", "business_rep", "moderator", "admin"],"dispute_status": ["open", "under_review", "resolved", "appealed", "closed"],"milestone_status": ["pending", "evidence_submitted", "approved", "rejected", "paid", "cancelled"],"need_status": ["draft", "pending_review", "changes_requested", "published", "rejected", "closed", "suspended"],"need_visibility": ["public", "members_only"],"offer_status": ["draft", "proposed", "countered", "accepted", "declined", "expired", "cancelled", "completed", "disputed"],"payment_status": ["created", "requires_action", "processing", "succeeded", "failed", "cancelled", "refunded", "partially_refunded"],"payout_status": ["pending", "approved", "in_transit", "paid", "failed", "cancelled"],"refund_status": ["requested", "processing", "succeeded", "failed", "cancelled"],"report_reason": ["fraud_or_scam", "misleading", "inappropriate", "harassment", "duplicate", "prohibited_request", "other"],"report_status": ["open", "under_review", "actioned", "dismissed"],"report_target": ["need", "profile", "message", "offer"],"support_type": ["gift", "paid_task", "milestone", "direct_support"],"verification_status": ["pending", "approved", "rejected", "withdrawn"],"verification_type": ["identity", "evidence", "outcome"]
+            "account_status": ["active", "suspended", "deletion_requested"],"agreement_status": ["awaiting_payment_readiness", "active", "submitted", "revision_requested", "in_review", "completed", "cancelled", "lapsed", "disputed"],"app_role": ["requester", "supporter", "business_rep", "moderator", "admin"],"dispute_status": ["open", "under_review", "resolved", "appealed", "closed"],"milestone_status": ["pending", "evidence_submitted", "approved", "rejected", "paid", "cancelled"],"need_status": ["draft", "pending_review", "changes_requested", "published", "rejected", "closed", "suspended"],"need_visibility": ["public", "members_only"],"offer_status": ["draft", "proposed", "countered", "accepted", "declined", "expired", "cancelled", "completed", "disputed"],"payment_status": ["created", "requires_action", "processing", "succeeded", "failed", "cancelled", "refunded", "partially_refunded"],"payout_status": ["pending", "approved", "in_transit", "paid", "failed", "cancelled"],"refund_status": ["requested", "processing", "succeeded", "failed", "cancelled"],"report_reason": ["fraud_or_scam", "misleading", "inappropriate", "harassment", "duplicate", "prohibited_request", "other"],"report_status": ["open", "under_review", "actioned", "dismissed"],"report_target": ["need", "profile", "message", "offer"],"support_type": ["gift", "paid_task", "milestone", "direct_support"],"verification_status": ["pending", "approved", "rejected", "withdrawn"],"verification_type": ["identity", "evidence", "outcome"]
           }
         }
 } as const

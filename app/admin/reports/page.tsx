@@ -34,6 +34,8 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
               </div>
               {r.details && <p className="text-sm">{r.details}</p>}
               {r.target_type === "need" && <Link href={`/admin/needs/${r.target_id}`} className="text-sm font-semibold underline">Review the reported need</Link>}
+              {r.target_type === "offer" && <Link href={`/admin/cases/${r.target_id}`} className="text-sm font-semibold underline">Open the case</Link>}
+              {r.target_type === "message" && <Link href={`/admin/cases/by-message/${r.target_id}`} className="text-sm font-semibold underline">Open the case</Link>}
               {r.resolution && <p className="text-sm text-muted">Resolution: {r.resolution}</p>}
               {!closed && (
                 <form action={resolveReportAction} className="flex flex-col gap-2 sm:flex-row">

@@ -16,14 +16,14 @@ const reasons = [
   ["other", "Something else"],
 ] as const;
 
-export function ReportForm({ targetType, targetId }: { targetType: "need" | "profile"; targetId: string }) {
+export function ReportForm({ targetType, targetId, label = "Report a concern" }: { targetType: "need" | "profile" | "message" | "offer"; targetId: string; label?: string }) {
   const [state, action] = useActionState<FormState, FormData>(reportAction, {});
   const id = useId();
   if (state.ok) return <Alert tone="success" live>{state.message}</Alert>;
   return (
     <details className="group rounded-2xl border border-line bg-white">
       <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-semibold text-navy-900">
-        Report a concern <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+        {label} <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
       </summary>
       <form action={action} className="space-y-4 border-t border-line p-4">
         <input type="hidden" name="targetType" value={targetType} />

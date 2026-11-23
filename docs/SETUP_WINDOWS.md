@@ -47,7 +47,7 @@ This creates every table, security policy, function and the private evidence buc
 
 ## 5b. Rate-limit server token
 
-Generate a secret, put it in `.env.local` (and in Vercel) as `RATE_LIMIT_SERVER_TOKEN`, then store **only its hash** in the database:
+Generate a secret, put it in `.env.local` (and as a Cloudflare Worker secret) as `RATE_LIMIT_SERVER_TOKEN`, then store **only its hash** in the database:
 
 ```powershell
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -59,6 +59,22 @@ insert into private.app_secrets (name, value_hash)
 values ('rate_limit_server_token', encode(sha256('PASTE-THE-SECRET-HERE'::bytea), 'hex'))
 on conflict (name) do update set value_hash = excluded.value_hash, updated_at = now();
 ```
+
+## 5c. Background jobs token and cron (Phase 3)
+
+Notifications, offer expiry and task auto-acceptance run through `run_jobs()`.
+
+1. Generate a token: `openssl rand -hex 32`. Store it as a Cloudflare Worker **secret** named `JOBS_SERVER_TOKEN`.
+2. In the Supabase SQL editor, store **only its hash**:
+   ```sql
+   insert into private.app_secrets (name, value_hash)
+   values ('jobs_server_token', encode(sha256('PASTE-TOKEN-HERE'::bytea), 'hex'))
+   on conflict (name) do update set value_hash = excluded.value_hash, updated_at = now();
+   ```
+3. Store `CRON_SECRET` (another random value) as a Cloudflare Worker **secret**. The Cron Trigger in `wrangler.jsonc` runs every 15 minutes and calls `/api/jobs/run` through `custom-worker.ts`.
+
+**Test environment only:** to let paid-task workflows run without payments, an admin (with MFA) runs
+`select public.admin_set_platform_setting('sandbox_workflows', 'true');` in **staging**. Never in production. Agreements started this way are permanently labelled "Test environment — no money moves".
 
 ## 6. Run it
 
@@ -82,11 +98,35 @@ Sign out and back in, then open **/admin**. You'll be sent to **Settings → Two
 
 **Lost both devices?** Another administrator removes your MFA factors in the Supabase dashboard (Authentication → Users), then records it with `select public.record_staff_mfa_reset('<your user id>', '<reason>');`. If you are the only administrator, keep your backup device somewhere safe: there's nobody to reset it except through direct database access.
 
-## 8. Deploy to Vercel
+## 8. Deploy to Cloudflare Workers (staging)
 
-1. Push the code to a **private** GitHub repository and import it in Vercel.
-2. Add the environment variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL=https://solveaneed.com` and `RATE_LIMIT_SERVER_TOKEN`.
-3. Add the domain `solveaneed.com` in Vercel and update the Supabase Site URL and redirect URLs to match.
+SolveANeed runs as a Cloudflare **Worker** using the official OpenNext adapter (`wrangler.jsonc`, `open-next.config.ts`, `custom-worker.ts`). Workers Paid (about $5/month) is recommended: the free plan's size and CPU limits are likely too small for this app.
+
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository** → GitHub → `MyGreathouse/SolveANeed`.
+2. Project name: **`solveaneed-staging`** (must match `name` in `wrangler.jsonc`). Production branch: `main` (or `phase-3` until it is merged). Leave the root directory empty.
+3. Build command: `npx opennextjs-cloudflare build` · Deploy command: `npx opennextjs-cloudflare deploy`.
+4. **Build variables** (Settings → Build → Variables) — these are baked into the browser code at build time:
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://bldrvexnroetqkmtbjus.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = the publishable key from docs/STAGING.md
+   - `NEXT_PUBLIC_SITE_URL` = the Worker address, e.g. `https://solveaneed-staging.<your-subdomain>.workers.dev`
+5. **Secrets** (Settings → Variables and Secrets → Add → type *Secret*): `RATE_LIMIT_SERVER_TOKEN`, `JOBS_SERVER_TOKEN`, `CRON_SECRET` (values from the private staging secrets file).
+6. Deploy, then in Supabase → Authentication → URL Configuration set **Site URL** to the Worker address and add `https://<worker address>/**` to **Redirect URLs**.
+
+Local preview on the Workers runtime: create `.dev.vars` (same keys as `.env.local`) and run `npm run cf:preview`.
+
+## 9. Protect the `main` branch on GitHub (one-time, founder)
+
+Claude cannot change repository settings, so please do this in the browser:
+
+1. GitHub → **MyGreathouse/SolveANeed** → **Settings** → **Branches** → **Add branch ruleset** (or "Add rule").
+2. Target branch: `main`.
+3. Turn on: **Require a pull request before merging** (required approvals: 0 now, 1 once you add a reviewer account) · **Dismiss stale approvals** · **Require conversation resolution**.
+4. Turn on **Require status checks to pass**, tick **Require branches to be up to date**, and add these three checks (they appear after the first CI run):
+   - `Typecheck, lint, unit, build, audit`
+   - `Database policy and attack tests`
+   - `Integration and end-to-end (real Auth, PostgREST, Storage)`
+5. Turn on **Block force pushes** and **Restrict deletions**; apply to administrators too.
+6. Optional but recommended: Settings → General → make the repository **Private** before launch.
 
 ## Troubleshooting
 

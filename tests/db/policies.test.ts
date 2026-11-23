@@ -124,7 +124,7 @@ run("database policies (RLS, grants, triggers)", () => {
       await expectPgError(createDraftNeed(db, requester, { currency: "JPY", amount_minor: 100000 }), "not currently available");
     });
 
-    it("keeps drafts private to their owner", async () => {
+    it("keeps drafts private to their owner, even from staff (S9)", async () => {
       const id = await createDraftNeed(db, requester);
       const asAnon = await as(db, anon, (q) => q("select id from public.needs where id = $1", [id]));
       const asOther = await as(db, user(other), (q) => q("select id from public.needs where id = $1", [id]));
