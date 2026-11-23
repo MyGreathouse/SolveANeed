@@ -8,10 +8,9 @@ import { MODERATION_ACTIONS, MODERATION_ACTIONS_REQUIRING_NOTE, type ModerationA
 import { uuidSchema } from "@/lib/domain/validation";
 import { str, type FormState } from "@/lib/utils/form";
 
+/** requireStaff() redirects staff without MFA; the database independently refuses staff actions below aal2. */
 async function staffOrThrow(adminOnly = false) {
-  const s = await requireStaff({ adminOnly });
-  if (s.mfaRequired && !s.mfaSatisfied) throw new Error("Multi-factor authentication required");
-  return s;
+  return requireStaff({ adminOnly });
 }
 
 export async function moderateNeedAction(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -24,7 +23,7 @@ export async function moderateNeedAction(_prev: FormState, fd: FormData): Promis
     return { errors: { note: "Explain the decision so the requester knows what to do next." } };
   }
   const supabase = await createClient();
-  const { error } = await supabase.rpc("moderate_need", { p_need_id: needId, p_action: action, p_note: note || null });
+  const { error } = await supabase.rpc("moderate_need", { p_need_id: needId, p_action: action, p_note: note });
   if (error) return { errors: { form: error.code === "22023" || error.code === "42501" ? error.message : "The action failed. Please refresh and try again." } };
   revalidatePath("/admin", "layout");
   redirect(`/admin/needs/${needId}?done=${action}`);
@@ -34,9 +33,9 @@ export async function resolveReportAction(fd: FormData): Promise<void> {
   await staffOrThrow();
   const id = uuidSchema.parse(str(fd, "reportId"));
   const status = str(fd, "status");
-  if (!["under_review", "actioned", "dismissed"].includes(status)) return;
+  if (status !== "under_review" && status !== "actioned" && status !== "dismissed") return;
   const supabase = await createClient();
-  await supabase.rpc("resolve_report", { p_report_id: id, p_status: status, p_resolution: str(fd, "resolution").slice(0, 1000) || null });
+  await supabase.rpc("resolve_report", { p_report_id: id, p_status: status, p_resolution: str(fd, "resolution").slice(0, 1000) });
   revalidatePath("/admin/reports");
 }
 
@@ -53,7 +52,7 @@ export async function setAccountStatusAction(_prev: FormState, fd: FormData): Pr
   const userId = str(fd, "userId");
   const status = str(fd, "status");
   const reason = str(fd, "reason").trim();
-  if (!uuidSchema.safeParse(userId).success || !["active", "suspended"].includes(status)) return { errors: { form: "Invalid request." } };
+  if (!uuidSchema.safeParse(userId).success || (status !== "active" && status !== "suspended")) return { errors: { form: "Invalid request." } };
   if (!reason) return { errors: { reason: "A reason is required and will be recorded in the audit log." } };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_account_status", { p_user_id: userId, p_status: status, p_reason: reason });
@@ -66,7 +65,7 @@ export async function setStaffRoleAction(fd: FormData): Promise<void> {
   await staffOrThrow(true);
   const userId = uuidSchema.parse(str(fd, "userId"));
   const role = str(fd, "role");
-  if (!["moderator", "admin", "business_rep"].includes(role)) return;
+  if (role !== "moderator" && role !== "admin" && role !== "business_rep") return;
   const supabase = await createClient();
   await supabase.rpc("admin_set_role", { p_user_id: userId, p_role: role, p_enabled: str(fd, "enabled") === "true" });
   revalidatePath("/admin/users");

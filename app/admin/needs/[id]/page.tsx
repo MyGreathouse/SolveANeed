@@ -33,13 +33,14 @@ export default async function AdminNeedPage({ params, searchParams }: PageProps<
   const supabase = await createClient();
   const { data: need } = await supabase.from("needs").select("*").eq("id", id).maybeSingle<OwnNeed>();
   if (!need) notFound();
-  const [files, currencies, { data: requester }, { data: signals }, { data: history }, { count: priorNeeds }] = await Promise.all([
+  const [files, currencies, { data: requester }, { data: signals }, { data: history }, { count: priorNeeds }, { data: inScope }] = await Promise.all([
     listEvidence(need.id),
     getCurrencies(),
     supabase.from("profiles").select("display_name, created_at, identity_verified_at, account_status").eq("id", need.requester_id).maybeSingle(),
     supabase.from("risk_signals").select("id, signal, detail, reviewed_at, created_at").eq("entity_type", "need").eq("entity_id", need.id).order("created_at"),
     supabase.from("moderation_actions").select("id, action, note, created_at").eq("target_type", "need").eq("target_id", need.id).order("created_at", { ascending: false }),
     supabase.from("needs").select("id", { count: "exact", head: true }).eq("requester_id", need.requester_id),
+    supabase.rpc("staff_evidence_in_scope", { p_need_id: id }),
   ]);
   const money = (m: number | null) => (m == null ? "—" : formatMoney({ amountMinor: m, currency: need.currency }, { list: currencies }));
   const own = need.requester_id === viewer.id;
@@ -69,8 +70,16 @@ export default async function AdminNeedPage({ params, searchParams }: PageProps<
 
           <section className="card p-6" aria-labelledby="ev">
             <h2 id="ev" className="font-bold">Private evidence</h2>
-            <p className="mb-4 mt-1 text-xs text-muted">Opening a file is recorded in the audit log.</p>
-            <EvidenceList files={files} canDelete={false} needId={need.id} />
+            {inScope ? (
+              <>
+                <p className="mb-4 mt-1 text-xs text-muted">Opening a file creates a 2-minute access grant and is recorded in the audit log.</p>
+                <EvidenceList files={files} canDelete={false} needId={need.id} />
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-muted">
+                Evidence is only available to moderators while a need is awaiting review, or while a report or verification case about it is open.
+              </p>
+            )}
           </section>
 
           <section className="card p-6" aria-labelledby="hist">
@@ -109,6 +118,9 @@ export default async function AdminNeedPage({ params, searchParams }: PageProps<
                 {signals.map((s) => (
                   <li key={s.id} className="rounded-xl border border-line p-3 text-sm">
                     <p className="font-semibold">{s.signal.replace(/_/g, " ")}</p>
+                    {Array.isArray((s.detail as { categories?: string[] })?.categories) && (
+                      <p className="mt-1 text-xs">Detected: {(s.detail as { categories: string[] }).categories.map((c) => c.replace(/_/g, " ")).join(", ")}</p>
+                    )}
                     {Array.isArray((s.detail as { matches?: string[] })?.matches) && (
                       <p className="mt-1 text-xs">Matches: {(s.detail as { matches: string[] }).matches.map((m) => <Link key={m} href={`/admin/needs/${m}`} className="mr-2 underline">{m.slice(0, 8)}</Link>)}</p>
                     )}

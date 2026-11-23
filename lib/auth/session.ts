@@ -17,33 +17,39 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const claims = claimsData?.claims;
   if (!claims?.sub) return null;
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: aal }] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, account_status, preferred_currency, identity_verified_at")
       .eq("id", claims.sub)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", claims.sub),
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
   ]);
   if (!profile) return null;
 
   return {
     id: claims.sub,
     email: (claims.email as string | undefined) ?? null,
-    emailVerified: Boolean((claims as Record<string, unknown>).email_verified ?? (claims.user_metadata as Record<string, unknown> | undefined)?.email_verified ?? true),
     displayName: profile.display_name,
     accountStatus: profile.account_status,
     roles: (roles ?? []).map((r) => r.role as AppRole),
     preferredCurrency: profile.preferred_currency,
     identityVerified: profile.identity_verified_at != null,
+    aal: (claims as { aal?: string }).aal === "aal2" ? "aal2" : "aal1",
+    mfaEnrolled: aal?.nextLevel === "aal2",
   };
 });
 
-/** Requires a signed-in, ACTIVE account. */
+/**
+ * Requires a signed-in, ACTIVE account. Members who have enrolled MFA must
+ * complete it before reaching any signed-in page.
+ */
 export async function requireViewer(next?: string): Promise<Viewer> {
   const viewer = await getViewer();
   if (!viewer) redirect(`/sign-in${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   if (viewer.accountStatus !== "active") redirect("/account/status");
+  if (viewer.mfaEnrolled && viewer.aal !== "aal2") redirect(`/mfa${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   return viewer;
 }
 

@@ -6,6 +6,9 @@ import { SITE_URL, isSupabaseConfigured } from "@/lib/supabase/env";
 import { emailOnlySchema, newPasswordSchema, signInSchema, signUpSchema } from "@/lib/domain/validation";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { str, zodErrors, type FormState } from "@/lib/utils/form";
+import { allowAnon, clientIp } from "@/lib/security/rate-limit";
+
+const TOO_MANY = "Too many attempts. Please wait a few minutes and try again.";
 
 const NOT_CONFIGURED: FormState = {
   errors: { form: "Accounts are not available yet: the database has not been connected. Please try again later." },
@@ -25,6 +28,9 @@ export async function signUpAction(_prev: FormState, fd: FormData): Promise<Form
   if (!parsed.success) return { errors: zodErrors(parsed.error), values };
   if (!isSupabaseConfigured()) return { ...NOT_CONFIGURED, values };
 
+  if (!(await allowAnon([{ action: "sign_up_ip", subject: await clientIp() }]))) {
+    return { errors: { form: TOO_MANY }, values };
+  }
   const next = safeNextPath(str(fd, "next"), parsed.data.intent === "need" ? "/dashboard/requester/needs/new" : "/dashboard");
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -64,6 +70,12 @@ export async function signInAction(_prev: FormState, fd: FormData): Promise<Form
   if (!parsed.success) return { errors: zodErrors(parsed.error), values: { email: raw.email } };
   if (!isSupabaseConfigured()) return { ...NOT_CONFIGURED, values: { email: raw.email } };
 
+  const allowed = await allowAnon([
+    { action: "sign_in_ip", subject: await clientIp() },
+    { action: "sign_in_email", subject: parsed.data.email },
+  ]);
+  if (!allowed) return { errors: { form: TOO_MANY }, values: { email: raw.email } };
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
@@ -75,19 +87,30 @@ export async function signInAction(_prev: FormState, fd: FormData): Promise<Form
           : "The email or password is incorrect.";
     return { errors: { form: msg }, values: { email: raw.email } };
   }
-  redirect(safeNextPath(str(fd, "next")));
+  const next = safeNextPath(str(fd, "next"));
+  // Members with an authenticator app must complete the second step.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") redirect(`/mfa?next=${encodeURIComponent(next)}`);
+  redirect(next);
 }
 
 export async function forgotPasswordAction(_prev: FormState, fd: FormData): Promise<FormState> {
   const parsed = emailOnlySchema.safeParse({ email: str(fd, "email").trim().toLowerCase() });
   if (!parsed.success) return { errors: zodErrors(parsed.error) };
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
+  const okMessage = "If an account exists for that email, we've sent a link to reset your password. It expires in one hour.";
+  const allowed = await allowAnon([
+    { action: "password_reset_ip", subject: await clientIp() },
+    { action: "password_reset_email", subject: parsed.data.email },
+  ]);
+  // Over the limit: same neutral message, but no email is sent.
+  if (!allowed) return { ok: true, message: okMessage };
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${SITE_URL}/reset-password`,
   });
   // Always the same message, whether or not an account exists.
-  return { ok: true, message: "If an account exists for that email, we've sent a link to reset your password. It expires in one hour." };
+  return { ok: true, message: okMessage };
 }
 
 export async function resetPasswordAction(_prev: FormState, fd: FormData): Promise<FormState> {

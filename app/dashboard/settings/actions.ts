@@ -27,7 +27,7 @@ export async function updateProfileAction(_prev: FormState, fd: FormData): Promi
       show_region: str(fd, "showRegion") === "on",
     })
     .eq("id", viewer.id);
-  if (error) return { errors: { form: "We couldn't save your profile. Please try again." } };
+  if (error) return { errors: { form: error.code === "54000" ? "You've updated your profile many times recently. Please try again later." : "We couldn't save your profile. Please try again." } };
   revalidatePath("/dashboard", "layout");
   return { ok: true, message: "Profile saved." };
 }
@@ -53,6 +53,8 @@ export async function setRoleAction(fd: FormData): Promise<void> {
   const role = str(fd, "role");
   if (role !== "requester" && role !== "supporter") return;
   const supabase = await createClient();
+  const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_action: "set_role" });
+  if (allowed === false) redirect("/dashboard/settings?notice=slow-down");
   await supabase.rpc("set_my_role", { p_role: role, p_enabled: str(fd, "enabled") === "true" });
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/settings?notice=roles-updated");
@@ -89,4 +91,12 @@ export async function markAllReadAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.rpc("mark_all_notifications_read");
   revalidatePath("/dashboard", "layout");
+}
+
+export async function unblockUserAction(fd: FormData): Promise<void> {
+  await requireViewer();
+  const supabase = await createClient();
+  await supabase.rpc("unblock_user", { p_user_id: str(fd, "userId") });
+  revalidatePath("/dashboard/settings");
+  redirect("/dashboard/settings?notice=unblocked#blocked");
 }

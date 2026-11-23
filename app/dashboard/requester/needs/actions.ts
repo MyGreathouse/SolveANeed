@@ -131,8 +131,6 @@ export async function uploadEvidenceAction(_prev: FormState, fd: FormData): Prom
   if (!check.ok) return { errors: { file: check.error } };
 
   const supabase = await createClient();
-  const { data: allowed } = await supabase.rpc("check_rate_limit", { p_action: "upload_evidence", p_max: 30, p_window_seconds: 3600 });
-  if (allowed === false) return { errors: { file: "Too many uploads. Please try again later." } };
 
   const path = `${viewer.id}/${needId}/${randomUUID()}.${check.ext}`;
   const { error: upErr } = await supabase.storage.from("need-evidence").upload(path, file, {
@@ -152,7 +150,11 @@ export async function uploadEvidenceAction(_prev: FormState, fd: FormData): Prom
   });
   if (rowErr) {
     await supabase.storage.from("need-evidence").remove([path]);
-    return { errors: { file: rowErr.code === "42501" ? "You can upload up to 10 files while a need is editable." : "We couldn't save that file. Please try again." } };
+    const msg =
+      rowErr.code === "54000" ? "Too many uploads. Please try again later."
+      : rowErr.code === "42501" ? "You can upload up to 10 files while a need is editable."
+      : "We couldn't save that file. Please try again.";
+    return { errors: { file: msg } };
   }
   revalidatePath(`/dashboard/requester/needs/${needId}`);
   return { ok: true, message: `${safeFileName(file.name)} uploaded privately.` };

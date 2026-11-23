@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATEGORY_SLUGS, SUPPORT_TYPE_VALUES, UK_REGIONS } from "./catalog";
+import { CATEGORY_SLUGS, SUPPORT_TYPE_VALUES, UK_REGIONS, type SupportType } from "./catalog";
 import { DEFAULT_CURRENCIES, MoneyError, getCurrency, isWithinNeedLimits, parseMajorToMinor, formatMoney } from "../money";
 import type { CurrencyInfo } from "../money";
 
@@ -63,7 +63,7 @@ export interface NeedRow {
   currency: string;
   intended_use: string | null;
   region: string | null;
-  accepted_support_types: string[];
+  accepted_support_types: SupportType[];
   deadline: string | null;
   visibility: "public" | "members_only";
   show_requester_name: boolean;

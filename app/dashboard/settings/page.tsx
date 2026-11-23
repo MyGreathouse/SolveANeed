@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/Badge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ResetPasswordForm } from "@/components/auth/PasswordForms";
 import { DeleteAccountForm, NotificationsForm, ProfileForm } from "@/components/dashboard/SettingsForms";
-import { setRoleAction, signOutEverywhereAction, signOutOtherSessionsAction } from "./actions";
+import { setRoleAction, signOutEverywhereAction, signOutOtherSessionsAction, unblockUserAction } from "./actions";
+import { removeFactorAction } from "./mfa-actions";
+import { MfaEnrol } from "@/components/dashboard/MfaSection";
+import { isStaff } from "@/lib/auth/types";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -17,6 +20,9 @@ const NOTICES: Record<string, string> = {
   "roles-updated": "Your roles have been updated.",
   "sessions-revoked": "You've been signed out of all other devices.",
   "password-updated": "Your password has been updated and other devices have been signed out.",
+  "mfa-removed": "That authenticator app has been removed.",
+  "unblocked": "Member unblocked.",
+  "slow-down": "You've changed roles many times recently. Please try again later.",
 };
 
 function Card({ id, title, description, children }: { id: string; title: string; description?: string; children: React.ReactNode }) {
@@ -33,14 +39,19 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
   const sp = await searchParams;
   const viewer = await requireViewer("/dashboard/settings");
   const supabase = await createClient();
-  const [{ data: p }, currencies] = await Promise.all([
+  const [{ data: p }, currencies, { data: factorData }, { data: blocked }] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, bio, region, preferred_currency, show_region, notify_email_offers, notify_email_messages, notify_email_updates, notify_marketing, created_at")
       .eq("id", viewer.id)
       .single(),
     getCurrencies(),
+    supabase.auth.mfa.listFactors(),
+    supabase.rpc("my_blocked_users"),
   ]);
+  const factors = (factorData?.totp ?? []).filter((f) => f.status === "verified");
+  const staff = isStaff(viewer);
+  const blockedList = (blocked ?? []) as { user_id: string; display_name: string; reason: string | null; created_at: string }[];
   const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
   const missingRole = sp.missingRole === "requester" || sp.missingRole === "supporter" ? sp.missingRole : null;
 
@@ -52,6 +63,12 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
         {missingRole && (
           <Alert tone="info" title={`Turn on the ${missingRole} role to continue`}>
             That area is for {missingRole}s. You can switch it on below — one account works for both.
+          </Alert>
+        )}
+
+        {sp.mfa === "required" && (
+          <Alert tone="warning" title="Two-step verification is required for staff">
+            Set up an authenticator app below to use the admin console. Add a second device as a backup so you can&apos;t be locked out.
           </Alert>
         )}
 
@@ -110,6 +127,54 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
               <form action={signOutEverywhereAction}><SubmitButton variant="ghost" pendingLabel="Signing out…">Sign out everywhere (including here)</SubmitButton></form>
             </div>
           </div>
+        </Card>
+
+        <Card
+          id="mfa"
+          title="Two-step verification"
+          description={staff ? "Required for moderators and administrators. Use two devices so losing one never locks you out." : "Optional extra protection: ask for a code from an authenticator app when you sign in."}
+        >
+          {factors.length > 0 && (
+            <ul className="mb-5 space-y-2">
+              {factors.map((f) => (
+                <li key={f.id} className="flex flex-col gap-2 rounded-2xl border border-line p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-navy-900">{f.friendly_name ?? "Authenticator app"} <Badge tone="success">On</Badge></p>
+                    <p className="text-xs text-muted">Added {new Date(f.created_at).toLocaleDateString("en-GB")}</p>
+                  </div>
+                  {viewer.aal === "aal2" && (
+                    <form action={removeFactorAction}>
+                      <input type="hidden" name="factorId" value={f.id} />
+                      <SubmitButton variant="ghost" size="sm" className="text-danger-700" pendingLabel="Removing…">Remove</SubmitButton>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {factors.length === 1 && <Alert tone="info" className="mb-4">You have one device. Add a backup in case it&apos;s lost.</Alert>}
+          <MfaEnrol isFirst={factors.length === 0} />
+        </Card>
+
+        <Card id="blocked" title="Blocked members" description="Blocked members can't send you offers or messages once those features open. They are not told that you blocked them.">
+          {blockedList.length ? (
+            <ul className="space-y-2">
+              {blockedList.map((b) => (
+                <li key={b.user_id} className="flex items-center justify-between gap-3 rounded-2xl border border-line p-4">
+                  <div>
+                    <p className="font-semibold text-navy-900">{b.display_name}</p>
+                    {b.reason && <p className="text-sm text-muted">{b.reason}</p>}
+                  </div>
+                  <form action={unblockUserAction}>
+                    <input type="hidden" name="userId" value={b.user_id} />
+                    <SubmitButton variant="outline" size="sm" pendingLabel="Unblocking…">Unblock</SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">You haven&apos;t blocked anyone.</p>
+          )}
         </Card>
 
         <Card id="privacy" title="Privacy and your data">
