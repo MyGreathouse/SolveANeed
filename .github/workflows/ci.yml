@@ -87,7 +87,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
     env:
-      E2E_DIR: ${{ runner.temp }}/e2e
+      E2E_DIR: /tmp/solveaneed-e2e
       STACK_RUNTIME: docker
       STACK_RATE_LIMIT_TOKEN: ci-test-only-rate-limit-token
     steps:
