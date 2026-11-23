@@ -59,9 +59,11 @@ export async function grantRole(db: Client, userId: string, role: string): Promi
  * Runs `fn` inside a transaction as the given Supabase role/user, then rolls
  * back unless `commit` is true. Mirrors how PostgREST executes requests.
  */
+export type Who = { role: "anon" | "authenticated"; userId?: string; aal?: "aal1" | "aal2" };
+
 export async function as<T>(
   db: Client,
-  who: { role: "anon" | "authenticated"; userId?: string },
+  who: Who,
   fn: (q: Client["query"]) => Promise<T>,
   commit = false,
 ): Promise<T> {
@@ -69,7 +71,7 @@ export async function as<T>(
   try {
     await db.query(`set local role ${who.role}`);
     await db.query("select set_config('request.jwt.claims', $1, true)", [
-      JSON.stringify(who.userId ? { sub: who.userId, role: who.role } : { role: who.role }),
+      JSON.stringify(who.userId ? { sub: who.userId, role: who.role, aal: who.aal ?? "aal2" } : { role: who.role }),
     ]);
     const result = await fn(db.query.bind(db) as Client["query"]);
     await db.query(commit ? "commit" : "rollback");
@@ -80,7 +82,8 @@ export async function as<T>(
   }
 }
 
-export const user = (userId: string) => ({ role: "authenticated" as const, userId });
+/** A signed-in session. Defaults to aal2 (MFA completed); pass "aal1" for password-only sessions. */
+export const user = (userId: string, aal: "aal1" | "aal2" = "aal2"): Who => ({ role: "authenticated", userId, aal });
 export const anon = { role: "anon" as const };
 
 /** Inserts a complete draft need as its owner and returns its id. */

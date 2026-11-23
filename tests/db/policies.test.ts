@@ -24,6 +24,8 @@ run("database policies (RLS, grants, triggers)", () => {
     admin = await createUser(db, { display_name: "Admin", intent: "help" });
     await grantRole(db, moderator, "moderator");
     await grantRole(db, admin, "admin");
+    // The suite reuses a few accounts heavily; the dedicated rate-limit test restores the real limit.
+    await db.query("update public.rate_limit_rules set max_hits = 1000 where action in ('submit_need', 'create_need')");
   }, 60_000);
 
   afterAll(async () => {
@@ -71,12 +73,11 @@ run("database policies (RLS, grants, triggers)", () => {
       expect(others.rowCount).toBe(0);
     });
 
-    it("hides other users' private profiles but exposes the safe public projection", async () => {
+    it("hides other users' private profiles and offers no member directory", async () => {
       const priv = await as(db, user(supporter), (q) => q("select * from public.profiles where id = $1", [requester]));
       expect(priv.rowCount).toBe(0);
-      const pub = await as(db, anon, (q) => q("select * from public.public_profiles where id = $1", [requester]));
-      expect(pub.rowCount).toBe(1);
-      expect(Object.keys(pub.rows[0])).not.toContain("notify_marketing");
+      const viewGone = await db.query("select to_regclass('public.public_profiles') as v");
+      expect(viewGone.rows[0].v).toBeNull();
     });
 
     it("blocks privilege escalation through roles", async () => {
@@ -172,7 +173,7 @@ run("database policies (RLS, grants, triggers)", () => {
 
       await expectPgError(
         as(db, user(supporter), (q) => q("select public.moderate_need($1, 'approve', null)", [id])),
-        "Moderator role required",
+        /Moderator role/,
       );
       await as(db, user(moderator), (q) => q("select public.moderate_need($1, 'approve', null)", [id]), true);
       const pub = await as(db, anon, (q) => q("select id, requester_name from public.needs_public where id = $1", [id]));
@@ -221,6 +222,7 @@ run("database policies (RLS, grants, triggers)", () => {
       const ids: string[] = [];
       for (let i = 0; i < 6; i++) ids.push(await createDraftNeed(db, other, { title: `Rate limit test need number ${i}` }));
       await grantRole(db, other, "requester");
+      await db.query("update public.rate_limit_rules set max_hits = 5 where action = 'submit_need'");
       let failures = 0;
       for (const id of ids) {
         try {
@@ -229,6 +231,7 @@ run("database policies (RLS, grants, triggers)", () => {
           if ((e as Error).message.includes("Too many submissions")) failures++;
         }
       }
+      await db.query("update public.rate_limit_rules set max_hits = 1000 where action = 'submit_need'");
       expect(failures).toBeGreaterThanOrEqual(1);
     });
 
@@ -244,7 +247,7 @@ run("database policies (RLS, grants, triggers)", () => {
   // ---------------------------------------------------------------- evidence
   describe("private evidence", () => {
     it("restricts evidence rows and storage objects to owner and staff", async () => {
-      const needId = await createDraftNeed(db, requester, { title: "Evidence privacy check need" });
+      const needId = await createDraftNeed(db, requester, { title: "Evidence privacy check need", description: "x".repeat(81) + " privacy check" });
       const path = `${requester}/${needId}/doc.pdf`;
       await as(db, user(requester), async (q) => {
         await q("insert into storage.objects (bucket_id, name, owner) values ('need-evidence', $1, $2)", [path, requester]);
@@ -256,18 +259,23 @@ run("database policies (RLS, grants, triggers)", () => {
 
       const otherRows = await as(db, user(other), (q) => q("select * from public.need_evidence where need_id = $1", [needId]));
       const otherObjs = await as(db, user(other), (q) => q("select * from storage.objects where name = $1", [path]));
-      const modRows = await as(db, user(moderator), (q) => q("select * from public.need_evidence where need_id = $1", [needId]));
-      expect([otherRows.rowCount, otherObjs.rowCount, modRows.rowCount]).toEqual([0, 0, 1]);
+      // Drafts are not under review, so even moderators cannot see their evidence.
+      const modDraft = await as(db, user(moderator), (q) => q("select * from public.need_evidence where need_id = $1", [needId]));
+      expect([otherRows.rowCount, otherObjs.rowCount, modDraft.rowCount]).toEqual([0, 0, 0]);
+      await as(db, user(requester), (q) => q("select public.submit_need($1)", [needId]), true);
+      const modReview = await as(db, user(moderator), (q) => q("select * from public.need_evidence where need_id = $1", [needId]));
+      expect(modReview.rowCount).toBe(1);
       await expectPgError(as(db, anon, (q) => q("select * from public.need_evidence")), "permission denied");
     });
 
     it("authorises evidence access for owner and staff only, and audit-logs staff views", async () => {
-      const needId = await createDraftNeed(db, requester, { title: "Evidence access logging need" });
+      const needId = await createDraftNeed(db, requester, { title: "Evidence access logging need", description: "y".repeat(81) + " access logging" });
       const path = `${requester}/${needId}/proof.pdf`;
       const { rows } = await db.query(
         "insert into public.need_evidence (need_id, owner_id, storage_path, file_name, mime_type, size_bytes) values ($1, $2, $3, 'proof.pdf', 'application/pdf', 500) returning id",
         [needId, requester, path]);
       const evId = rows[0].id;
+      await as(db, user(requester), (q) => q("select public.submit_need($1)", [needId]), true);
       const own = await as(db, user(requester), (q) => q("select public.authorise_evidence_access($1) as p", [evId]));
       expect(own.rows[0].p).toBe(path);
       await expectPgError(as(db, user(other), (q) => q("select public.authorise_evidence_access($1)", [evId])), "Not found");
@@ -277,7 +285,7 @@ run("database policies (RLS, grants, triggers)", () => {
     });
 
     it("restricts moderation statistics to staff", async () => {
-      await expectPgError(as(db, user(supporter), (q) => q("select public.moderation_stats()")), "Moderator role required");
+      await expectPgError(as(db, user(supporter), (q) => q("select public.moderation_stats()")), /Moderator role/);
       const r = await as(db, user(moderator), (q) => q("select public.moderation_stats() as s"));
       expect(r.rows[0].s).toHaveProperty("pending_needs");
     });
@@ -312,12 +320,13 @@ run("database policies (RLS, grants, triggers)", () => {
 
     it("accepts reports from members and lets staff resolve them", async () => {
       const id = await as(db, user(supporter), async (q) => {
-        const r = await q("select public.submit_report('need', gen_random_uuid(), 'misleading', 'Looks copied')");
+        const target = await q("select id from public.needs where status = 'published' and requester_id <> $1 limit 1", [supporter]);
+        const r = await q("select public.submit_report('need', $1, 'misleading', 'Looks copied')", [target.rows[0].id]);
         return r.rows[0].submit_report as string;
       }, true);
       await expectPgError(
         as(db, user(supporter), (q) => q("select public.resolve_report($1, 'dismissed', 'no')", [id])),
-        "Moderator role required",
+        /Moderator role/,
       );
       await as(db, user(moderator), (q) => q("select public.resolve_report($1, 'dismissed', 'Not a duplicate')", [id]), true);
       const { rows } = await db.query("select status from public.reports where id = $1", [id]);
