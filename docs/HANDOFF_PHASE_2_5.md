@@ -123,7 +123,7 @@ Image work (Priority 5) ✅: all 12 images reviewed; spelling correct in every i
 | `eab291b` | Image corrections and new social card |
 | `c560f50` | Audit, agreement-engine, safeguarding and backlog docs; S9 |
 | `57fd5b2` | S10 fix; stack script fix; regenerated types |
-| *(this commit)* | Phase 2.5 handoff, final audit output, screenshots |
+| `298dfd8` | Phase 2.5 handoff, final audit output, screenshots |
 
 ---
 
