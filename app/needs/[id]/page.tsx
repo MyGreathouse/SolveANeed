@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BadgeCheck, Bookmark, BookmarkCheck, CalendarDays, FileCheck2, MapPin } from "lucide-react";
-import { getCurrencies, getPublicNeed, isNeedSaved } from "@/lib/data/needs";
+import { getCurrencies, getMyNeed, getPublicNeed, isNeedSaved } from "@/lib/data/needs";
 import { getViewer } from "@/lib/auth/session";
+import { getMyOpenOfferForNeed } from "@/lib/data/deals";
 import { uuidSchema } from "@/lib/domain/validation";
 import { SUPPORT_TYPES, categoryLabel } from "@/lib/domain/catalog";
 import { formatMoney } from "@/lib/money";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ButtonLink } from "@/components/ui/Button";
-import { Alert } from "@/components/ui/Alert";
 import { ReportForm } from "@/components/needs/ReportForm";
 import { PillarIcon } from "@/components/ui/icons";
 import { toggleSaveNeedAction } from "../actions";
@@ -30,7 +30,9 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
   const { id } = await params;
   const [need, viewer, currencies] = await Promise.all([load(id), getViewer(), getCurrencies()]);
   if (!need) notFound();
-  const saved = viewer ? await isNeedSaved(viewer.id, need.id) : false;
+  const [saved, myOffer, own] = viewer
+    ? await Promise.all([isNeedSaved(viewer.id, need.id), getMyOpenOfferForNeed(viewer.id, need.id), getMyNeed(viewer.id, need.id)])
+    : [false, null, null];
   const money = (m: number) => formatMoney({ amountMinor: m, currency: need.currency }, { list: currencies });
   const pct = Math.floor(need.funding_basis_points / 100);
 
@@ -96,7 +98,16 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
             <div className="mt-6 space-y-3">
               {viewer ? (
                 <>
-                  <Alert tone="info" title="Offers open soon">Giving, paid tasks and milestone offers will be available once payments are approved and tested.</Alert>
+                  {own ? (
+                    <ButtonLink href="/dashboard/requester/offers" variant="outline" className="w-full">View offers on your needs</ButtonLink>
+                  ) : myOffer ? (
+                    <ButtonLink href={`/dashboard/offers/${myOffer}`} variant="gold" size="lg" className="w-full">View your offer</ButtonLink>
+                  ) : viewer.roles.includes("supporter") ? (
+                    <ButtonLink href={`/needs/${need.id}/offer`} variant="gold" size="lg" className="w-full">Make an offer</ButtonLink>
+                  ) : (
+                    <ButtonLink href="/dashboard/settings" variant="outline" className="w-full">Add the supporter role to make offers</ButtonLink>
+                  )}
+                  <p className="text-xs text-muted">Offers don&apos;t take payment. Payments are not yet available on SolveANeed, so accepted offers are agreed but not funded.</p>
                   <form action={toggleSaveNeedAction}>
                     <input type="hidden" name="needId" value={need.id} />
                     <input type="hidden" name="saved" value={String(saved)} />

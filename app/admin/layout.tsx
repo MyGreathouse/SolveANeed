@@ -14,6 +14,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin", label: "Overview" },
         { href: "/admin/needs", label: "Needs" },
         { href: "/admin/reports", label: "Reports" },
+        { href: "/admin/disputes", label: "Disputes & safety" },
         { href: "/admin/users", label: "Users" },
         ...(isAdmin ? [{ href: "/admin/audit", label: "Audit Logs" }] : []),
       ],

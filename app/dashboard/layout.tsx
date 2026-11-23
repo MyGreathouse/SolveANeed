@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireViewer } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { ACCOUNT_NAV, REQUESTER_NAV, SUPPORTER_NAV, sectionsFor } from "@/components/dashboard/nav-config";
+import { ACCOUNT_NAV, DEALS_NAV, REQUESTER_NAV, SUPPORTER_NAV, sectionsFor } from "@/components/dashboard/nav-config";
 import { SideNav } from "@/components/dashboard/SideNav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
@@ -17,6 +17,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const groups = [
     ...(s.requester ? [{ title: "Requester", items: REQUESTER_NAV }] : []),
     ...(s.supporter ? [{ title: "Supporter", items: SUPPORTER_NAV }] : []),
+    { title: "Offers and agreements", items: DEALS_NAV },
     { title: "Account", items: ACCOUNT_NAV },
   ];
 

@@ -1265,6 +1265,9 @@ isOneToOne: false
 "my_roles":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"][]
                            },
+"need_accepts_paid_tasks":
+{ Args: { "p_need_id": string }; Returns: boolean
+                           },
 "need_requester_public":
 { Args: { "p_need_id": string }; Returns: {
               "display_name": string,"identity_verified": boolean
@@ -1300,9 +1303,6 @@ isOneToOne: false
 "resolve_report":
 { Args: { "p_report_id": string,"p_resolution": string,"p_status": Database["public"]['Enums']["report_status"] }; Returns: undefined
                            },
-"review_risk_signal":
-{ Args: { "p_signal_id": string }; Returns: undefined
-                           },
 "review_task_work":
 { Args: { "p_agreement_id": string,"p_decision": string,"p_note": string }; Returns: undefined
                            },
@@ -1332,6 +1332,9 @@ isOneToOne: false
                            },
 "staff_has_file_grant":
 { Args: { "p_path": string }; Returns: boolean
+                           },
+"staff_offer_for_message":
+{ Args: { "p_message_id": string }; Returns: string
                            },
 "staff_read_conversation":
 { Args: { "p_conversation_id": string }; Returns: {

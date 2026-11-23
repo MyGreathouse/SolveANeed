@@ -77,6 +77,8 @@ psql -h localhost -U postgres -d $DB -q -c "insert into private.app_secrets (nam
 # Test stack only: every browser test comes from 127.0.0.1, so per-IP limits are raised.
 # Per-email and per-user limits keep their production values.
 psql -h localhost -U postgres -d $DB -q -c "update public.rate_limit_rules set max_hits = 1000 where action in ('sign_in_ip','sign_up_ip','password_reset_ip')"
+# Test stack only: paid-task workflows may run without payments (agreements are marked test_mode).
+psql -h localhost -U postgres -d $DB -q -c "update public.platform_settings set value = 'true' where key = 'sandbox_workflows'"
 if [ "$RUNTIME" = docker ]; then
   docker run -d --name sn-postgrest --network host -v $E2E/postgrest.conf:/etc/postgrest.conf:ro $POSTGREST_IMAGE postgrest /etc/postgrest.conf >/dev/null
 else

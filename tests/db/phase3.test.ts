@@ -283,7 +283,7 @@ run("phase 3: offers, agreements and messaging", () => {
       expect(viewed.rows[0].n).toBe(2);
       expect((await one("select count(*)::int n from public.audit_events where action = 'conversation.viewed' and entity_id = $1", [conv])).n).toBe(1);
       const signals = (await db.query("select s.id from public.risk_signals s join public.messages m on m.id = s.entity_id where m.conversation_id = $1", [conv])).rows;
-      for (const s of signals) await rpc(moderator, "select public.review_risk_signal($1)", [s.id]);
+      for (const s of signals) await rpc(moderator, "select public.mark_risk_signal_reviewed($1)", [s.id]);
       await expectPgError(rpc(moderator, "select * from public.staff_read_conversation($1)", [conv]), "Not found");
       // A report from a participant brings it back into scope.
       const msg = (await one("select id from public.messages where conversation_id = $1 and sender_id = $2", [conv, outsider])).id;

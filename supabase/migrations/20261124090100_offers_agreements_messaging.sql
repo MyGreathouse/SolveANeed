@@ -1164,23 +1164,26 @@ begin
   return v_id;
 end $$;
 
--- Moderators mark sensitive-content signals as reviewed.
-create or replace function public.review_risk_signal(p_signal_id uuid)
-returns void language plpgsql security definer set search_path = '' as $$
-begin
-  if not public.is_staff() then
-    raise exception 'Moderator role (with MFA) required' using errcode = '42501';
-  end if;
-  update public.risk_signals set reviewed_at = now(), reviewed_by = auth.uid() where id = p_signal_id and reviewed_at is null;
-  if not found then
-    raise exception 'Signal not found or already reviewed' using errcode = 'P0002';
-  end if;
-  perform public.log_audit('risk_signal.reviewed', 'risk_signal', p_signal_id, '{}'::jsonb);
-end $$;
+-- Staff: which offer a reported message belongs to (for opening the case).
+create or replace function public.staff_offer_for_message(p_message_id uuid)
+returns uuid language sql stable security definer set search_path = '' as $$
+  select c.offer_id from public.messages m join public.conversations c on c.id = m.conversation_id
+  where m.id = p_message_id and public.is_staff();
+$$;
 
 -- Staff read access to disputes is already granted by RLS (disputes_read).
 -- Staff may also read agreements, offers and deal events (case handling);
 -- conversations and messages remain private except via staff_read_conversation().
+
+-- Whether a published need can receive paid-task offers (the requester has opted in).
+create or replace function public.need_accepts_paid_tasks(p_need_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.needs n
+    join public.support_preferences sp on sp.user_id = n.requester_id
+    where n.id = p_need_id and n.status = 'published' and 'paid_task' = any (n.accepted_support_types)
+      and sp.open_to_paid_tasks and auth.uid() is not null);
+$$;
 
 -- Display names of the two parties to an offer (parties and staff only).
 create or replace function public.deal_party_names(p_offer_id uuid)
@@ -1230,8 +1233,9 @@ begin
     'public.staff_has_file_grant(text)',
     'public.conversation_member(text)',
     'public.conversation_upload_allowed(text)',
-    'public.review_risk_signal(uuid)',
-    'public.deal_party_names(uuid)'
+    'public.staff_offer_for_message(uuid)',
+    'public.deal_party_names(uuid)',
+    'public.need_accepts_paid_tasks(uuid)'
   ] loop
     execute format('revoke execute on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated', f);

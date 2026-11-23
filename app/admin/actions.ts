@@ -1,5 +1,7 @@
 "use server";
 
+import { runJobs } from "@/lib/server/jobs";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
@@ -69,4 +71,21 @@ export async function setStaffRoleAction(fd: FormData): Promise<void> {
   const supabase = await createClient();
   await supabase.rpc("admin_set_role", { p_user_id: userId, p_role: role, p_enabled: str(fd, "enabled") === "true" });
   revalidatePath("/admin/users");
+}
+
+export async function resolveDisputeAction(fd: FormData): Promise<void> {
+  await staffOrThrow();
+  const id = uuidSchema.parse(str(fd, "disputeId"));
+  const offerId = uuidSchema.parse(str(fd, "offerId"));
+  const outcome = str(fd, "outcome");
+  if (outcome !== "complete" && outcome !== "cancel") redirect(`/admin/cases/${offerId}?error=Choose+an+outcome`);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("resolve_dispute", { p_dispute_id: id, p_outcome: outcome, p_resolution: str(fd, "resolution").slice(0, 4000) });
+  if (error) {
+    const safe = ["22023", "42501", "P0002"].includes(error.code ?? "") ? error.message : "Could not resolve the dispute.";
+    redirect(`/admin/cases/${offerId}?error=${encodeURIComponent(safe)}`);
+  }
+  void runJobs();
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/cases/${offerId}?done=resolved`);
 }
