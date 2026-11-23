@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { PASSWORD, latestEmailLink, signIn, signOut, signUpAndVerify, sql, uniqueEmail } from "./support";
+import { writeFileSync } from "node:fs";
+import { PASSWORD, enrolMfaViaUi, latestEmailLink, signIn, signOut, signUpAndVerify, sql, uniqueEmail } from "./support";
 
 /**
  * Full journey: sign-up with email verification → create need → private
@@ -12,6 +13,7 @@ test.describe.serial("marketplace journey", () => {
   const title = `Laptop for a web development bootcamp ${Date.now() % 100000}`;
   let needUrl = "";
   let needId = "";
+  let modSecret = "";
 
   test("sign-up enforces 18+ confirmation and password strength", async ({ page }) => {
     await page.goto("/sign-up");
@@ -60,10 +62,36 @@ test.describe.serial("marketplace journey", () => {
       "select amount_minor, currency, status from public.needs where id = $1", [needId]);
     expect(row).toEqual({ amount_minor: "65000", currency: "GBP", status: "draft" });
 
+    // Private evidence: upload through the app (real Supabase Storage), open it, then a second file is removed.
+    const pdf = "/tmp/solveaneed-e2e-evidence.pdf";
+    writeFileSync(pdf, "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
+    const fake = "/tmp/solveaneed-e2e-fake.pdf";
+    writeFileSync(fake, "this is not really a pdf");
+    await page.getByLabel("Add a file").setInputFiles(fake);
+    await page.getByRole("button", { name: "Upload privately" }).click();
+    await expect(page.getByText(/contents don't match its type/)).toBeVisible();
+    await page.getByLabel("Add a file").setInputFiles(pdf);
+    await page.getByRole("button", { name: "Upload privately" }).click();
+    await expect(page.getByText("uploaded privately")).toBeVisible();
+    const link = page.getByRole("link", { name: /solveaneed-e2e-evidence\.pdf/ });
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute("href");
+    const opened = await page.request.get(href!, { maxRedirects: 0 });
+    expect(opened.status()).toBe(302);
+    expect(opened.headers()["cache-control"]).toBe("no-store");
+    const file = await page.request.get(opened.headers()["location"]);
+    expect((await file.body()).subarray(0, 4).toString()).toBe("%PDF");
+
     await page.getByRole("button", { name: "Save and submit for review" }).click();
     await expect(page.getByText("Submitted for review")).toBeVisible();
     await expect(page.getByText("Under review")).toBeVisible();
     await expect(page.getByLabel("Title")).toHaveCount(0); // locked while in review
+  });
+
+  test("signed-out visitors and other members cannot open the evidence link", async ({ page }) => {
+    const [ev] = await sql<{ id: string }>("select id from public.need_evidence where need_id = $1", [needId]);
+    const anon = await page.request.get(`/api/evidence/${ev.id}`, { maxRedirects: 0 });
+    expect(anon.status()).toBe(401);
   });
 
   test("an unpublished need is invisible to the public", async ({ page }) => {
@@ -78,15 +106,49 @@ test.describe.serial("marketplace journey", () => {
     expect(admin?.status()).toBe(404);
     const foreign = await page.goto(`/dashboard/requester/needs/${needId}`);
     expect(foreign?.status()).toBe(404);
+    const [ev] = await sql<{ id: string }>("select id from public.need_evidence where need_id = $1", [needId]);
+    const evidence = await page.request.get(`/api/evidence/${ev.id}`, { maxRedirects: 0 });
+    expect(evidence.status()).toBe(404);
+    await signOut(page);
+  });
+
+  test("a new moderator is sent to set up MFA before reaching the admin console", async ({ page }) => {
+    await signUpAndVerify(page, { ...moderator, intent: "help" });
+    await sql("insert into public.user_roles (user_id, role) select id, 'moderator' from auth.users where email = $1", [moderator.email]);
+    await page.goto("/admin/needs");
+    await expect(page).toHaveURL(/\/dashboard\/settings\?mfa=required/);
+    await expect(page.getByText("Two-step verification is required for staff")).toBeVisible();
+    modSecret = await enrolMfaViaUi(page);
+    await page.goto("/admin");
+    await expect(page.getByText("MFA verified")).toBeVisible();
+    await signOut(page);
+
+    // Next sign-in: password alone is not enough.
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill(moderator.email);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/mfa/);
+    await page.getByRole("textbox", { name: "6-digit code" }).fill("000000");
+    await page.getByRole("button", { name: "Verify" }).click();
+    await expect(page.getByText(/code didn't match/)).toBeVisible();
+    const res = await page.goto("/admin");
+    expect(page.url()).toMatch(/\/mfa/);
+    expect(res?.status()).toBeLessThan(500);
     await signOut(page);
   });
 
   test("moderator approves the need; requester is notified", async ({ page }) => {
-    await signUpAndVerify(page, { ...moderator, intent: "help" });
-    await sql("insert into public.user_roles (user_id, role) select id, 'moderator' from auth.users where email = $1", [moderator.email]);
+    await signIn(page, moderator.email, PASSWORD, modSecret);
     await page.goto("/admin/needs");
     await page.getByRole("link", { name: title }).click();
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+    // Evidence is in scope during review; opening it is audit-logged.
+    const evLink = page.getByRole("link", { name: /solveaneed-e2e-evidence\.pdf/ });
+    await expect(evLink).toBeVisible();
+    const opened = await page.request.get((await evLink.getAttribute("href"))!, { maxRedirects: 0 });
+    expect(opened.status()).toBe(302);
 
     // A note is required to request changes.
     await page.getByRole("button", { name: "Request changes" }).click();
@@ -98,7 +160,10 @@ test.describe.serial("marketplace journey", () => {
     const [n] = await sql<{ status: string }>("select status from public.needs where id = $1", [needId]);
     expect(n.status).toBe("published");
     const audit = await sql("select action from public.audit_events where entity_id = $1 order by id", [needId]);
-    expect(audit.map((a) => a.action)).toEqual(["need.submitted", "need.moderated"]);
+    expect(audit.map((a) => a.action)).toEqual(["need.submitted", "evidence.viewed", "need.moderated"]);
+    // After publication, with no open report, evidence is out of scope for moderators.
+    await page.reload();
+    await expect(page.getByText(/Evidence is only available to moderators while/)).toBeVisible();
     await signOut(page);
   });
 
@@ -116,7 +181,7 @@ test.describe.serial("marketplace journey", () => {
   });
 
   test("supporter saves and reports the need", async ({ page }) => {
-    await signIn(page, moderator.email);
+    await signIn(page, moderator.email, PASSWORD, modSecret);
     await page.goto(`/needs/${needId}`);
     await page.getByRole("button", { name: "Save this need" }).click();
     await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
@@ -140,6 +205,20 @@ test.describe.serial("marketplace journey", () => {
     await expect(page.getByText("Your need is live")).toBeVisible();
     await page.getByRole("button", { name: "Mark all as read" }).click();
     await expect(page.getByRole("button", { name: "Mark all as read" })).toHaveCount(0);
+  });
+
+  test("repeated failed sign-ins are rate limited", async ({ page }) => {
+    const victim = uniqueEmail("ratelimit");
+    let limited = false;
+    for (let i = 0; i < 10 && !limited; i++) {
+      await page.goto("/sign-in");
+      await page.getByLabel("Email address").fill(victim);
+      await page.getByLabel("Password").fill("wrong-password-123");
+      await page.getByRole("button", { name: "Sign in" }).click();
+      await expect(page.getByRole("alert").filter({ hasText: /incorrect|Too many/ })).toBeVisible();
+      limited = (await page.getByText("Too many attempts").count()) > 0;
+    }
+    expect(limited).toBe(true);
   });
 
   test("password reset by email works and the new password signs in", async ({ page }) => {

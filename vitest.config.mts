@@ -12,6 +12,17 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: "integration",
+          include: ["tests/integration/**/*.test.ts"],
+          environment: "node",
+          testTimeout: 30_000,
+          hookTimeout: 60_000,
+          fileParallelism: false,
+        },
+      },
+      {
+        extends: true,
+        test: {
           name: "db",
           include: ["tests/db/**/*.test.ts"],
           environment: "node",

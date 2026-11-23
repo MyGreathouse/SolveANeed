@@ -1,5 +1,5 @@
 import http from 'node:http';
-const routes = [['/auth/v1', 'http://127.0.0.1:9999'], ['/rest/v1', 'http://127.0.0.1:3001']];
+const routes = [['/auth/v1', 'http://127.0.0.1:9999'], ['/rest/v1', 'http://127.0.0.1:3001'], ['/storage/v1', 'http://127.0.0.1:5000']];
 http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, {'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}); return res.end(); }
   const r = routes.find(([p]) => req.url.startsWith(p));

@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
 import type { Page } from "@playwright/test";
+import { totp } from "../support/totp";
 
 export const PASSWORD = "Correct-Horse-42-battery";
 export const uniqueEmail = (tag: string) => `e2e-${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.test`;
@@ -63,12 +64,30 @@ export async function signUpAndVerify(page: Page, opts: { name: string; email: s
   await page.goto(link);
 }
 
-export async function signIn(page: Page, email: string, password = PASSWORD) {
+/** Signs in; if the account has MFA, completes the challenge with the given TOTP secret. */
+export async function signIn(page: Page, email: string, password = PASSWORD, totpSecret?: string) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/dashboard/);
+  await page.waitForURL(/\/(dashboard|mfa)/);
+  if (page.url().includes("/mfa")) {
+    if (!totpSecret) throw new Error("Account requires MFA but no TOTP secret was given");
+    await page.getByRole("textbox", { name: "6-digit code" }).fill(totp(totpSecret));
+    await page.getByRole("button", { name: "Verify" }).click();
+    await page.waitForURL(/\/dashboard/);
+  }
+}
+
+/** Enrols an authenticator app from Settings and returns its secret. */
+export async function enrolMfaViaUi(page: Page): Promise<string> {
+  await page.goto("/dashboard/settings#mfa");
+  await page.getByRole("button", { name: /Set up an authenticator app|Add a backup authenticator app/ }).click();
+  const secret = (await page.getByTestId("totp-secret").innerText()).trim();
+  await page.getByRole("textbox", { name: /Enter the 6-digit code/ }).fill(totp(secret));
+  await page.getByRole("button", { name: "Confirm and turn on" }).click();
+  await page.getByText("Authenticator app added").waitFor();
+  return secret;
 }
 
 export async function signOut(page: Page) {
