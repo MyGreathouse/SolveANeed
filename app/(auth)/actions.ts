@@ -89,8 +89,8 @@ export async function signInAction(_prev: FormState, fd: FormData): Promise<Form
   }
   const next = safeNextPath(str(fd, "next"));
   // Members with an authenticator app must complete the second step.
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") redirect(`/mfa?next=${encodeURIComponent(next)}`);
+  const { data: enrolled } = await supabase.rpc("my_mfa_enrolled");
+  if (enrolled === true) redirect(`/mfa?next=${encodeURIComponent(next)}`);
   redirect(next);
 }
 

@@ -1084,6 +1084,9 @@ isOneToOne: false
               "created_at": string,"display_name": string,"reason": string,"user_id": string
             }[]
                            },
+"my_mfa_enrolled":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "my_roles":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"][]
                            },

@@ -6,7 +6,8 @@ export PGPASSWORD=postgres
 DB=solveaneed_e2e
 JWT_SECRET=$(cat $E2E/jwt_secret)
 
-pkill -f "$E2E/auth" || true; pkill -f "$E2E/postgrest" || true; pkill -f gateway.mjs || true
+# Processes are started with relative paths, so match on the binary name.
+pkill -x auth || true; pkill -x postgrest || true; pkill -f gateway.mjs || true
 pkill -f "dist/start/server.js" || true; pkill -f smtp.py || true; pkill -f "http.server 8099" || true
 sleep 1
 

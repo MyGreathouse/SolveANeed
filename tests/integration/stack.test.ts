@@ -163,6 +163,12 @@ run("integration: real Auth + PostgREST + Storage", () => {
       expect(audit2.data?.length).toBe(1);
     });
 
+    it("MFA enrolment is read from the Auth server's factors table, not the cookie (S10)", async () => {
+      expect((await mod.sb.rpc("my_mfa_enrolled")).data).toBe(true);
+      expect((await sup.sb.rpc("my_mfa_enrolled")).data).toBe(false);
+      expect((await client().rpc("my_mfa_enrolled")).error).not.toBeNull(); // anon cannot call it
+    });
+
     it("MFA factor enrolment is written to the audit log", async () => {
       const rows = await sql("select action from public.audit_events where actor_id = $1 and action like 'mfa.%'", [mod.id]);
       expect(rows.map((r) => r.action)).toEqual(expect.arrayContaining(["mfa.factor_enrolled"]));

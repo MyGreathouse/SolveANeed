@@ -17,14 +17,16 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const claims = claimsData?.claims;
   if (!claims?.sub) return null;
 
-  const [{ data: profile }, { data: roles }, { data: aal }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: mfaEnrolled }] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, account_status, preferred_currency, identity_verified_at")
       .eq("id", claims.sub)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", claims.sub),
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    // Authoritative: read from auth.mfa_factors for the verified JWT subject,
+    // never from the (unauthenticated) session object stored in the cookie.
+    supabase.rpc("my_mfa_enrolled"),
   ]);
   if (!profile) return null;
 
@@ -37,7 +39,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     preferredCurrency: profile.preferred_currency,
     identityVerified: profile.identity_verified_at != null,
     aal: (claims as { aal?: string }).aal === "aal2" ? "aal2" : "aal1",
-    mfaEnrolled: aal?.nextLevel === "aal2",
+    mfaEnrolled: mfaEnrolled === true,
   };
 });
 
