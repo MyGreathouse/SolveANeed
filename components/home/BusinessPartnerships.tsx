@@ -8,11 +8,11 @@ export function BusinessPartnerships() {
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem]">
           <Image
-            src="/images/solve-direct.webp"
-            alt="A team of colleagues gathered around a laptop, smiling and pointing at the screen."
+            src="/images/fund-mobile-v2.webp"
+            alt="Three colleagues smile in an office as one of them celebrates while looking at her phone."
             fill
             sizes="(min-width: 1024px) 45vw, 100vw"
-            className="object-cover object-[35%_50%]"
+            className="object-cover object-[50%_30%]"
           />
         </div>
         <div>

@@ -37,7 +37,7 @@ export function Hero() {
         <div className="relative">
           <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] ring-1 ring-white/10 shadow-[0_40px_80px_-30px_rgb(0_0_0/0.6)]">
             <Image
-              src="/images/give-support.webp"
+              src="/images/give-support-v2.webp"
               alt="A smiling man sits beside an older woman, his hand on her shoulder, as she places her hands on her heart in gratitude."
               fill
               priority

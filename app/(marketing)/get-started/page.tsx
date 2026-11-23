@@ -20,8 +20,8 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/get-s
       steps: ["Create your free account", "Describe your need and upload private evidence", "Submit for review — we'll notify you when it's live"],
       href: viewer ? "/dashboard/requester/needs/new" : "/sign-up?intent=need",
       cta: viewer ? "Create a need" : "Create account & post a need",
-      image: "/images/explore-categories.webp",
-      alt: "A man celebrates at his laptop next to a list of need categories.",
+      image: "/images/fund-milestones-v2.webp",
+      alt: "A woman celebrates while working at her laptop.",
     },
     {
       key: "help",
@@ -31,7 +31,7 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/get-s
       href: viewer ? "/dashboard/supporter" : "/sign-up?intent=help",
       cta: viewer ? "Go to supporter dashboard" : "Create a supporter account",
       secondary: { href: "/needs", label: "Browse needs first" },
-      image: "/images/community.webp",
+      image: "/images/community-v2.webp",
       alt: "A diverse group of smiling people standing together.",
     },
   ] as const;
@@ -50,7 +50,7 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/get-s
               className={cn("card flex flex-col overflow-hidden", highlighted === p.key && "ring-4 ring-gold-500")}
             >
               <div className="relative aspect-[16/8]">
-                <Image src={p.image} alt={p.alt} fill sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" priority={highlighted === p.key} />
+                <Image src={p.image} alt={p.alt} fill sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover object-[50%_30%]" priority={highlighted === p.key} />
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-8">
                 <h2 id={`path-${p.key}`} className="text-2xl font-extrabold">{p.title}</h2>

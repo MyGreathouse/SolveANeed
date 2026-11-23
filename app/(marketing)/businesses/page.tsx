@@ -11,9 +11,9 @@ export default function BusinessesPage() {
         eyebrow="For businesses"
         title="Turn your community commitment into measurable outcomes."
         intro="Sponsor skills, equipment and opportunities for real people — with clear agreements and records of what was achieved."
-        image="/images/solve-direct.webp"
+        image="/images/solve-direct-v2.webp"
         imageAlt="Colleagues smile together around a laptop in a bright office."
-        imagePosition="object-[35%_50%]"
+        imagePosition="object-[50%_35%]"
         actions={<ButtonLink href="/sign-up?intent=help" variant="gold" size="lg">Create a supporter account</ButtonLink>}
       />
       <section className="bg-white py-16">

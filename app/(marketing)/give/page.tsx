@@ -12,9 +12,9 @@ export default function GivePage() {
         eyebrow="GIVE"
         title="Support a real need, with no strings attached."
         intro="Browse needs that have been reviewed by our moderators, and give the full amount or whatever you can."
-        image="/images/community.webp"
+        image="/images/community-v2.webp"
         imageAlt="A diverse group of smiling people standing together outdoors."
-        imagePosition="object-[50%_45%]"
+        imagePosition="object-center"
         actions={
           <>
             <ButtonLink href="/needs" variant="gold" size="lg">Explore needs</ButtonLink>

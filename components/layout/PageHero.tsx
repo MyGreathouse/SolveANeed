@@ -8,7 +8,6 @@ export function PageHero({
   image,
   imageAlt,
   imagePosition = "object-center",
-  illustrative,
   actions,
 }: {
   eyebrow: string;
@@ -17,7 +16,6 @@ export function PageHero({
   image?: string;
   imageAlt?: string;
   imagePosition?: string;
-  illustrative?: boolean;
   actions?: ReactNode;
 }) {
   return (
@@ -34,9 +32,6 @@ export function PageHero({
             <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem] ring-1 ring-white/10">
               <Image src={image} alt={imageAlt ?? ""} fill priority sizes="(min-width: 1024px) 45vw, 100vw" className={`object-cover ${imagePosition}`} />
             </div>
-            {illustrative && (
-              <figcaption className="mt-2 text-xs text-on-navy-muted">Illustration only — figures shown in the image are not real SolveANeed data.</figcaption>
-            )}
           </figure>
         )}
       </div>

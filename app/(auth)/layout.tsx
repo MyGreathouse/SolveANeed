@@ -10,11 +10,11 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         </section>
         <aside className="relative order-1 hidden overflow-hidden rounded-[2rem] bg-navy-900 lg:order-2 lg:block lg:min-h-[36rem] on-navy" aria-hidden="true">
           <Image
-            src="/images/mobile-onboarding.webp"
+            src="/images/mobile-onboarding-v2.webp"
             alt=""
             fill
             sizes="(min-width: 1024px) 50vw, 0px"
-            className="object-cover object-[30%_50%] opacity-90"
+            className="object-cover object-[40%_40%] opacity-90"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-900/40 to-transparent" />

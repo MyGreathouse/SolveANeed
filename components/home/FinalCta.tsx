@@ -21,11 +21,11 @@ export function FinalCta() {
           </div>
           <div className="relative min-h-64 lg:min-h-full">
             <Image
-              src="/images/mobile-onboarding.webp"
+              src="/images/mobile-onboarding-v2.webp"
               alt="A woman smiles while using the SolveANeed app on her phone in a café."
               fill
               sizes="(min-width: 1024px) 40vw, 100vw"
-              className="object-cover object-[25%_50%]"
+              className="object-cover object-[40%_35%]"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-navy-900 via-navy-900/10 to-transparent lg:via-transparent" aria-hidden="true" />
           </div>

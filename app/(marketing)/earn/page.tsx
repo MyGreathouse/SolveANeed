@@ -21,9 +21,9 @@ export default function EarnPage() {
         eyebrow="EARN"
         title="Earn towards your goal, on fair terms."
         intro="If you choose to, supporters can offer you paid remote tasks — designing materials, writing, research and more — that help you reach your goal with dignity."
-        image="/images/earn-inclusive.webp"
+        image="/images/earn-inclusive-v2.webp"
         imageAlt="A young woman in a wheelchair smiles while working on a laptop."
-        imagePosition="object-[30%_50%]"
+        imagePosition="object-[50%_30%]"
         actions={
           <>
             <ButtonLink href="/get-started?path=need" variant="gold" size="lg">Post a need</ButtonLink>

@@ -5,9 +5,9 @@ import { ButtonLink } from "@/components/ui/Button";
 
 const panels = [
   {
-    image: "/images/community.webp",
-    alt: "A diverse group of smiling people from different walks of life standing together outdoors.",
-    position: "object-[50%_45%]",
+    image: "/images/fund-couple-v2.webp",
+    alt: "A man and a woman celebrate together while looking at a laptop.",
+    position: "object-[50%_30%]",
     eyebrow: "For supporters",
     title: "Give help your way",
     points: [
@@ -18,9 +18,9 @@ const panels = [
     cta: { href: "/get-started?path=help", label: "Start helping" },
   },
   {
-    image: "/images/earn-inclusive.webp",
+    image: "/images/earn-inclusive-v2.webp",
     alt: "A smiling young woman in a wheelchair works on a laptop at a bright desk.",
-    position: "object-[30%_50%]",
+    position: "object-[50%_50%]",
     eyebrow: "For requesters",
     title: "Earn support with dignity",
     points: [
