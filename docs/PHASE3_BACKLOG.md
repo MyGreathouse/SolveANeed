@@ -6,7 +6,7 @@ Ordered. Each item lists its acceptance criteria. "Gate" items must be done befo
 | # | Item | Acceptance criteria | Owner |
 |---|---|---|---|
 | P1 | Staging environment | Separate Supabase project (London) + Vercel preview; migrations applied by CI; seeded **test** data only; `RATE_LIMIT_SERVER_TOKEN` and its hash configured; staff MFA on | Founder (access) + Engineering |
-| P2 | Push repository to GitHub | All local commits pushed; branch protection on `main`; CI runs typecheck, lint, unit, db and integration tests | Founder (repo) + Engineering |
+| P2 | Push repository to GitHub — ✅ pushed 23 Nov 2026 ([MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed)); remaining: branch protection + CI | All local commits pushed ✅; branch protection on `main`; CI runs typecheck, lint, unit, db and integration tests | Founder (repo) + Engineering |
 | P3 | Legal review of the agreement engine | Written opinion on items marked [VERIFY] in AGREEMENT_ENGINE.md | Founder + counsel |
 
 ## Phase 3 — Agreements (no money movement)

@@ -1,6 +1,6 @@
 # SolveANeed — Phase 2.5 Handoff: Architecture Hardening & Phase 3 Readiness
 
-**Date:** 23 November 2026 · **Responds to:** ChatGPT independent review (conditional approval) · **Phase 3 UI:** not started, as instructed · **Live payments:** not activated; blocked in the database.
+**Date:** 23 November 2026 (regenerated after the GitHub push) · **Repository:** [github.com/MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed), branch `main` · **Responds to:** ChatGPT independent review (conditional approval) · **Phase 3 UI:** not started, as instructed · **Live payments:** not activated; blocked in the database.
 
 Legend: ✅ **Completed and tested** · 🟨 **Completed, not tested** · 📐 **Designed (document only)** · ⛔ **Blocked** · ⬜ **Planned**
 
@@ -87,14 +87,14 @@ Requester protection (Priority 4): [`SAFEGUARDING.md`](SAFEGUARDING.md). Built a
 
 ## 6. Phase 3 implementation backlog
 
-[`PHASE3_BACKLOG.md`](PHASE3_BACKLOG.md): 3 prerequisites (staging, GitHub, legal review of the [VERIFY] items) + 14 ordered items with acceptance criteria, plus the Phase 4 payment gate. Schema changes needed are listed in AGREEMENT_ENGINE §5.
+[`PHASE3_BACKLOG.md`](PHASE3_BACKLOG.md): 3 prerequisites: staging ⛔, GitHub ✅ pushed (branch protection and CI still to set up), legal review of the [VERIFY] items ⛔ + 14 ordered items with acceptance criteria, plus the Phase 4 payment gate. Schema changes needed are listed in AGREEMENT_ENGINE §5.
 
 ## 7. Staging deployment status ⛔
 
-**Not deployed.** I have no access to a Supabase project, Vercel account or GitHub repository for SolveANeed. Ready to deploy as soon as access exists:
+**Not deployed.** The GitHub repository now exists and holds all the code, but I still have no access to a Supabase project or Vercel account. Ready to deploy as soon as access exists:
 1. Create a **separate** Supabase project for staging (London region), then `npx supabase link` + `npx supabase db push` (7 migrations).
 2. Set `RATE_LIMIT_SERVER_TOKEN` in Vercel and store its hash (SETUP_WINDOWS §5b).
-3. Vercel project (preview environment) with the env vars from `.env.example`.
+3. Vercel project imported from `MyGreathouse/SolveANeed` (preview environment), with the env vars from `.env.example`.
 4. Seed **test** data only; no payment keys (none exist yet).
 5. Run `npm run test:e2e` against the staging URL with Mailpit or another test inbox.
 
@@ -112,10 +112,11 @@ Image work (Priority 5) ✅: all 12 images reviewed; spelling correct in every i
 
 ## 10. Commit references
 
-✅ **Pushed** to [github.com/MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed) (branch `main`), with every hash unchanged. Each link opens the commit on GitHub.
+✅ **All pushed** to [github.com/MyGreathouse/SolveANeed](https://github.com/MyGreathouse/SolveANeed) on 23 Nov 2026 (branch `main`, no force-push; the repository was empty beforehand). Hashes are unchanged from the local history. The commit that adds this regenerated report follows `9badd6d`; see the [commit list](https://github.com/MyGreathouse/SolveANeed/commits/main).
 
 | Commit | Content |
 |---|---|
+| [`c5381f6`](https://github.com/MyGreathouse/SolveANeed/commit/c5381f6) | Initial Next.js scaffold |
 | [`d90f76b`](https://github.com/MyGreathouse/SolveANeed/commit/d90f76b) | Phase 1 baseline (as delivered before this review) |
 | [`da3d549`](https://github.com/MyGreathouse/SolveANeed/commit/da3d549) | Security hardening migration (S1–S8) + 39 attack tests |
 | [`db7226f`](https://github.com/MyGreathouse/SolveANeed/commit/db7226f) | Staff MFA UI and enforcement, distributed rate limits, scoped evidence UI, blocked members, generated DB types |
@@ -124,14 +125,20 @@ Image work (Priority 5) ✅: all 12 images reviewed; spelling correct in every i
 | [`c560f50`](https://github.com/MyGreathouse/SolveANeed/commit/c560f50) | Audit, agreement-engine, safeguarding and backlog docs; S9 |
 | [`57fd5b2`](https://github.com/MyGreathouse/SolveANeed/commit/57fd5b2) | S10 fix; stack script fix; regenerated types |
 | [`298dfd8`](https://github.com/MyGreathouse/SolveANeed/commit/298dfd8) | Phase 2.5 handoff, final audit output, screenshots |
+| [`6f3a8da`](https://github.com/MyGreathouse/SolveANeed/commit/6f3a8da) | Handoff: final commit reference recorded |
+| [`c0c2e4a`](https://github.com/MyGreathouse/SolveANeed/commit/c0c2e4a) | Local test stack: test-only rate-limit token made overridable and labelled |
+| [`9badd6d`](https://github.com/MyGreathouse/SolveANeed/commit/9badd6d) | Handoff: commits marked as pushed, references linked |
+
+⚠ **The repository is public.** It holds no secrets (`.env.local` is gitignored; `.env.example` has placeholders only), but the security audit and architecture are readable by anyone. Founder decision: keep public or switch to private before launch (`SETUP_WINDOWS.md` assumes private).
 
 ---
 
 ### Clearly not done
-- Staging deployment ⛔ (access) · ~~GitHub push~~ ✅ done
+- Staging deployment ⛔ (Supabase + Vercel access)
+- GitHub branch protection and CI ⬜ (repository pushed ✅)
 - Phase 3 UI ⬜ (deliberately not started)
 - Legal opinions ⛔ (counsel)
 - Supabase MFA recovery codes ⬜ (waiting for general availability)
 - External penetration test ⬜ · nonce-based CSP ⬜ · storage-level upload quota ⬜
 
-**Ready to start Phase 3 once staging and the GitHub repository exist and the founder approves the backlog.**
+**Ready to start Phase 3 once staging exists and the founder approves the backlog.**
