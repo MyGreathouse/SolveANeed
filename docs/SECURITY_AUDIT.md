@@ -15,15 +15,17 @@ Method: automated privilege inventory (`scripts/privilege-audit.sql`, output in 
 | S6 | MEDIUM | `check_rate_limit()` accepted caller-chosen limits; direct API writes (drafts, saves, uploads, profile edits) were unlimited; signed-out flows had no limits beyond Supabase Auth's own. | Server-defined `rate_limit_rules`; `consume_rate_limit()` (user) and `consume_anon_rate_limit()` (server-token-protected, hashed subjects); database triggers limit direct writes. Postgres-backed, so limits hold across all serverless instances. | attacks: *rate limiting (S6)*; E2E: *repeated failed sign-ins are rate limited* | `da3d549`, `db7226f` |
 | S7 | LOW | Reports accepted non-existent or own targets; report status could move backwards; staff could resolve their own reports; "evidence reviewed" could be set on drafts or live needs. | Validation and forward-only transitions in the RPCs. | attacks: *reports and moderation integrity (S7)* | `da3d549` |
 | S8 | LOW | Trigger functions were executable by clients; **future** functions and tables would be exposed by default (Postgres grants EXECUTE to PUBLIC; Supabase grants table privileges). | Revoked; global and schema default privileges changed. The first attempt (schema-level only) **failed its test**: PUBLIC's EXECUTE can only be removed globally, so it was fixed accordingly. | attacks: *default privileges (S8)* | `da3d549` |
-| S9 | LOW | Staff could read members' unsubmitted drafts. | Staff see needs only from submission onwards. | policies: *keeps drafts private* | Phase 2.5 final commit |
+| S9 | LOW | Staff could read members' unsubmitted drafts. | Staff see needs only from submission onwards. | policies: *keeps drafts private* | `c560f50` |
+| S10 | MEDIUM | **Introduced and caught during Phase 2.5.** The new app-level MFA routing read "is MFA enrolled?" from the session object in the cookie, which is **not authenticated**. Someone holding a member's stolen password could edit their cookie to skip that member's optional MFA prompt. Staff were unaffected (the database checks the signed `aal` claim). Found from Supabase's "may not be authentic" server warnings during the final from-scratch verification. | `my_mfa_enrolled()` reads `auth.mfa_factors` for the verified JWT subject; used at sign-in and on every page. Server warnings went from dozens per run to 0. | integration: *MFA enrolment is read from the Auth server's factors table* | `57fd5b2` |
 
 ## 2. SECURITY DEFINER function review
 
-All **37** definer functions in `public` and `private` (verified by query: 37 of 37) set `search_path = ''` (no search-path hijacking), fully qualified names, `auth.uid()` taken from the verified JWT, and no dynamic SQL built from user input. The only dynamic SQL is a constant trigger-creation statement. Client EXECUTE rights:
+All **38** definer functions in `public` and `private` (verified by query: 38 of 38) set `search_path = ''` (no search-path hijacking), fully qualified names, `auth.uid()` taken from the verified JWT, and no dynamic SQL built from user input. The only dynamic SQL is a constant trigger-creation statement. Client EXECUTE rights:
 
 | Function | Clients | Caller check | Notes |
 |---|---|---|---|
 | `has_role`, `is_staff`, `is_active_user` | anon, auth | Current user only | Cannot probe other accounts |
+| `my_mfa_enrolled` | auth | Current user only | Reads `auth.mfa_factors` (S10) |
 | `my_roles` | auth | Current user only | Raw roles for MFA routing |
 | `need_requester_public` | anon, auth | Published needs only; members-only needs require sign-in | Replaces `public_profiles` |
 | `submit_need`, `close_need` | auth | Owner + requester role + active; rate-limited | Validation, duplicates, sensitive-content signal |

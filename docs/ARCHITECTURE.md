@@ -19,7 +19,7 @@ flowchart LR
   RL -->|consume_anon_rate_limit| PG
   subgraph PG_["Postgres enforcement"]
     RLS["RLS + column grants<br/>has_role requires aal2 for staff"]
-    RPC["37 SECURITY DEFINER functions<br/>search_path empty"]
+    RPC["38 SECURITY DEFINER functions<br/>search_path empty"]
     TRG["Guard + rate-limit triggers"]
     AUD[("audit_events append-only")]
     GR[("evidence_access_grants 120s")]

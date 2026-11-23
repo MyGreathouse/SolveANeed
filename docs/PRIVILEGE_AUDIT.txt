@@ -1,4 +1,4 @@
-SolveANeed privilege audit — generated 2026-11-23T11:01Z against Postgres 16 with GoTrue v2.180.0 auth schema and Supabase Storage API schema.
+SolveANeed privilege audit — generated 2026-11-23T11:14Z against Postgres 16 with the GoTrue v2.180.0 auth schema and the Supabase Storage API schema (all 7 migrations applied).
 Command: psql -f scripts/privilege-audit.sql
 
 == Functions in public: security definer, search_path, who can EXECUTE
@@ -38,6 +38,7 @@ Command: psql -f scripts/privilege-audit.sql
  moderate_need                | p_need_id uuid, p_action text, p_note text                                            | DEFINER  | search_path="" | f         | t
  moderation_stats             |                                                                                       | DEFINER  | search_path="" | f         | t
  my_blocked_users             |                                                                                       | DEFINER  | search_path="" | f         | t
+ my_mfa_enrolled              |                                                                                       | DEFINER  | search_path="" | f         | t
  my_roles                     |                                                                                       | DEFINER  | search_path="" | f         | t
  need_requester_public        | p_need_id uuid                                                                        | DEFINER  | search_path="" | t         | t
  notify_user                  | p_user_id uuid, p_type text, p_title text, p_body text, p_link text                   | DEFINER  | search_path="" | f         | f
@@ -103,8 +104,8 @@ Command: psql -f scripts/privilege-audit.sql
 ------------------------
  rate_limits
  provider_events
- rate_limit_rules
  evidence_access_grants
+ rate_limit_rules
 
 == Tables WITHOUT RLS (must be empty)
  relname 

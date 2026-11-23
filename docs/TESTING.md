@@ -4,7 +4,7 @@
 |---|---|---|---|
 | Unit | `npm test` | Nothing | 41 passing |
 | Database policies + attacks | `npm run test:db` | `TEST_DATABASE_URL`, a **disposable** Postgres 15+ database (it is dropped on every run) | 72 passing (33 policy + 39 attack) |
-| Integration (HTTP, real services) | `npx vitest run --project integration` | `INT_SUPABASE_URL`, `INT_ANON_KEY`, `INT_SERVICE_ROLE_KEY` (**test stack only**), `INT_DATABASE_URL` | 17 passing |
+| Integration (HTTP, real services) | `npx vitest run --project integration` | `INT_SUPABASE_URL`, `INT_ANON_KEY`, `INT_SERVICE_ROLE_KEY` (**test stack only**), `INT_DATABASE_URL` | 18 passing |
 | End-to-end + accessibility | `npm run test:e2e` | A running app connected to a **non-production** Supabase, plus `E2E_DATABASE_URL` and either `MAILPIT_URL` or `E2E_MAIL_DIR`; `RATE_LIMIT_SERVER_TOKEN` set | 45 passing, 1 skipped by design |
 | Types / lint | `npm run typecheck` / `npm run lint` | — | Clean |
 
