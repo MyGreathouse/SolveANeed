@@ -59,7 +59,10 @@ psql -h localhost -U postgres -d $DB -q -c "grant usage on schema storage to ano
 
 for f in $APP/supabase/migrations/*.sql; do psql -h localhost -U postgres -d $DB -v ON_ERROR_STOP=1 -q -f $f; done
 # Server token for anonymous rate limits (value in .env.local as RATE_LIMIT_SERVER_TOKEN)
-psql -h localhost -U postgres -d $DB -q -c "insert into private.app_secrets (name, value_hash) values ('rate_limit_server_token', encode(sha256('e2e-rate-limit-token'::bytea), 'hex'))"
+# TEST STACK ONLY: throwaway token for the local stack (set the same value as
+# RATE_LIMIT_SERVER_TOKEN in .env.local). Never reuse it in staging/production.
+STACK_TOKEN=${STACK_RATE_LIMIT_TOKEN:-e2e-rate-limit-token}
+psql -h localhost -U postgres -d $DB -q -c "insert into private.app_secrets (name, value_hash) values ('rate_limit_server_token', encode(sha256('$STACK_TOKEN'::bytea), 'hex'))"
 
 # Test stack only: every browser test comes from 127.0.0.1, so per-IP limits are raised.
 # Per-email and per-user limits keep their production values.
